@@ -35,14 +35,9 @@ def create_app():
             try:
                 trabajador = Trabajador.query.get(user_id)
             except OperationalError:
-                # Conexión a MySQL caducada -> limpiamos sesión y mandamos a login
                 db.session.remove()
                 session.clear()
-                flash(
-                    "Se ha perdido la conexión con la base de datos. "
-                    "Vuelve a iniciar sesión.",
-                    "danger",
-                )
+                flash("Error de conexión. Vuelve a iniciar sesión.", "danger")
                 return redirect(url_for("login"))
 
             if not trabajador or not trabajador.rol:
@@ -63,7 +58,7 @@ def create_app():
     def index():
         return render_template("index.html")
 
-    # ----------------- LOGIN / LOGOUT ----------------- #
+    # ----------------- LOGIN ----------------- #
     @app.route("/login", methods=["GET", "POST"])
     def login():
         form = LoginForm()
@@ -75,7 +70,8 @@ def create_app():
         if form.validate_on_submit():
             trabajador = Trabajador.query.filter_by(nif=form.nif.data).first()
 
-            if trabajador and trabajador.passw == form.password.data:
+            # CAMBIO DE SEGURIDAD: Usamos check_password
+            if trabajador and trabajador.check_password(form.password.data):
                 if trabajador.idEmpresa != form.empresa_id.data:
                     flash("El trabajador no pertenece a esa empresa.", "danger")
                 elif not trabajador.rol or trabajador.rol.nombre_rol.lower() not in (
@@ -127,13 +123,17 @@ def create_app():
         if form.validate_on_submit():
             empresa.nombrecomercial = form.nombrecomercial.data
             empresa.cif = form.cif.data
+            empresa.latitud = form.latitud.data
+            empresa.longitud = form.longitud.data
+            empresa.radio = form.radio.data
+            
             db.session.commit()
             flash("Datos de empresa actualizados.", "success")
             return redirect(url_for("empresa_view"))
 
         return render_template("empresa.html", form=form)
 
-    # ----------------- ROLES (NIVEL BÁSICO) ----------------- #
+    # ----------------- ROLES ----------------- #
     @app.get("/roles")
     @admin_required
     def roles_list():
@@ -188,7 +188,7 @@ def create_app():
             flash("Rol eliminado.", "success")
         return redirect(url_for("roles_list"))
 
-    # ----------------- EMPLEADOS (BÁSICO + HORARIOS) ---------- #
+    # ----------------- EMPLEADOS ----------------- #
     @app.get("/empleados")
     @admin_required
     def empleados_list():
@@ -231,13 +231,16 @@ def create_app():
                     nif=nif_limpio,
                     nombre=form.nombre.data,
                     apellidos=form.apellidos.data,
-                    passw=form.passw.data,
+                    # NO PASAMOS PASSW AQUÍ, USAMOS SET_PASSWORD
                     email=form.email.data,
                     telef=form.telef.data,
                     idEmpresa=empresa_id,
                     idHorario=form.horario_id.data,
                     idRol=form.rol_id.data,
                 )
+                # CAMBIO DE SEGURIDAD: Encriptamos la contraseña
+                trabajador.set_password(form.passw.data)
+                
                 db.session.add(trabajador)
                 db.session.commit()
                 flash("Empleado creado.", "success")
@@ -270,20 +273,25 @@ def create_app():
         horarios = Horario.query.order_by(Horario.nombre_horario).all()
         form.horario_id.choices = [(h.id_horario, h.nombre_horario) for h in horarios]
 
-        # CORRECCIÓN: Solo cargamos datos manuales en GET
+        # CAMBIO DE SEGURIDAD: NO rellenamos el campo password en el GET 
+        # para no mostrar el hash al usuario.
         if request.method == 'GET':
-            form.passw.data = trabajador.passw
             form.horario_id.data = trabajador.idHorario
+            # form.passw.data NO SE ASIGNA
 
         if form.validate_on_submit():
             trabajador.nif = form.nif.data
             trabajador.nombre = form.nombre.data
             trabajador.apellidos = form.apellidos.data
-            trabajador.passw = form.passw.data
             trabajador.email = form.email.data
             trabajador.telef = form.telef.data
             trabajador.idRol = form.rol_id.data
             trabajador.idHorario = form.horario_id.data
+            
+            # CAMBIO DE SEGURIDAD: Solo si se envía contraseña, la actualizamos encriptada
+            if form.passw.data:
+                trabajador.set_password(form.passw.data)
+
             db.session.commit()
             flash("Empleado actualizado.", "success")
             return redirect(url_for("empleados_list"))
@@ -307,7 +315,7 @@ def create_app():
             flash("Empleado eliminado.", "success")
         return redirect(url_for("empleados_list"))
 
-    # ----------------- HORARIOS (NIVEL AVANZADO) -------------- #
+    # ----------------- HORARIOS ----------------- #
     @app.get("/horarios")
     @admin_required
     def horarios_list():
@@ -435,15 +443,12 @@ def create_app():
 
     # ----------------- GESTIÓN DE EMPRESAS (NIVEL EXPERTO) ----------------- #
 
-    # Listar todas las empresas (Solo Superadmin)
     @app.get("/empresas")
     @admin_required
     def empresas_list():
-        # Verificación manual de rol Superadministrador
         user_id = session.get("user_id")
         trabajador = Trabajador.query.get(user_id)
 
-        # Si el rol es nulo o no es Superadmin, bloqueamos
         if not trabajador.rol or trabajador.rol.nombre_rol.lower() != "superadministrador":
             flash("Acceso restringido a Superadministradores.", "danger")
             return redirect(url_for("panel"))
@@ -451,11 +456,9 @@ def create_app():
         empresas = Empresa.query.order_by(Empresa.nombrecomercial).all()
         return render_template("empresas_list.html", empresas=empresas)
 
-    # Crear nueva empresa (Solo Superadmin)
     @app.route("/empresas/nueva", methods=["GET", "POST"])
     @admin_required
     def empresa_new():
-        # Verificación de rol
         user_id = session.get("user_id")
         trabajador = Trabajador.query.get(user_id)
         if not trabajador.rol or trabajador.rol.nombre_rol.lower() != "superadministrador":
@@ -467,7 +470,6 @@ def create_app():
             nombre = form.nombrecomercial.data.strip()
             cif = form.cif.data.strip().upper()
 
-            # VALIDACIÓN: Comprobar duplicados antes de crear
             existe_nombre = Empresa.query.filter_by(nombrecomercial=nombre).first()
             existe_cif = Empresa.query.filter_by(cif=cif).first()
 
@@ -476,7 +478,13 @@ def create_app():
             elif existe_cif:
                 flash(f"Error: Ya existe una empresa con CIF '{cif}'.", "danger")
             else:
-                empresa = Empresa(nombrecomercial=nombre, cif=cif)
+                empresa = Empresa(
+                    nombrecomercial=nombre,
+                    cif=cif,
+                    latitud=form.latitud.data,
+                    longitud=form.longitud.data,
+                    radio=form.radio.data
+                )
                 db.session.add(empresa)
                 db.session.commit()
                 flash("Empresa creada correctamente.", "success")
@@ -484,11 +492,9 @@ def create_app():
 
         return render_template("empresa_form.html", form=form, titulo="Nueva Empresa")
 
-    # Eliminar empresa (Solo Superadmin y si no tiene empleados)
     @app.post("/empresas/<int:empresa_id>/eliminar")
     @admin_required
     def empresa_delete(empresa_id):
-        # Verificación de rol
         user_id = session.get("user_id")
         trabajador = Trabajador.query.get(user_id)
         if not trabajador.rol or trabajador.rol.nombre_rol.lower() != "superadministrador":
@@ -497,7 +503,6 @@ def create_app():
 
         empresa = Empresa.query.get_or_404(empresa_id)
 
-        # VALIDACIÓN: No eliminar si tiene empleados
         if empresa.trabajadores:
             flash("No se puede eliminar la empresa porque tiene empleados asociados.", "danger")
         else:

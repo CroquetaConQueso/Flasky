@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="row justify-content-center">
-  <div class="col-md-6">
+  <div class="col-md-8">
     <div class="card shadow-sm border-0">
       <div class="card-body p-4">
         <h1 class="h4 mb-4 text-center">{{ titulo }}</h1>
@@ -12,15 +12,36 @@
         <form method="post">
           {{ form.hidden_tag() }}
 
-          <div class="mb-3">
-            {{ form.nombrecomercial.label(class="form-label") }}
-            {{ form.nombrecomercial(class="form-control", placeholder="Ej: Tech Solutions S.L.") }}
+          <h5 class="text-primary mb-3">Datos Generales</h5>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              {{ form.nombrecomercial.label(class="form-label") }}
+              {{ form.nombrecomercial(class="form-control", placeholder="Ej: Tech Solutions S.L.") }}
+            </div>
+            <div class="col-md-6 mb-3">
+              {{ form.cif.label(class="form-label") }}
+              {{ form.cif(class="form-control", placeholder="Ej: B12345678") }}
+            </div>
           </div>
 
-          <div class="mb-3">
-            {{ form.cif.label(class="form-label") }}
-            {{ form.cif(class="form-control", placeholder="Ej: B12345678") }}
-            <div class="form-text">El CIF debe ser único en el sistema.</div>
+          <h5 class="text-primary mt-4 mb-3">Configuración de Fichaje</h5>
+          <div class="alert alert-light border small">
+            Introduce las coordenadas del centro de trabajo para validar los fichajes desde la App Móvil.
+          </div>
+          
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              {{ form.latitud.label(class="form-label") }}
+              {{ form.latitud(class="form-control", placeholder="Latitud") }}
+            </div>
+            <div class="col-md-4 mb-3">
+              {{ form.longitud.label(class="form-label") }}
+              {{ form.longitud(class="form-control", placeholder="Longitud") }}
+            </div>
+            <div class="col-md-4 mb-3">
+              {{ form.radio.label(class="form-label") }}
+              {{ form.radio(class="form-control", placeholder="Metros") }}
+            </div>
           </div>
 
           <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
