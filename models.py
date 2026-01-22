@@ -1,3 +1,4 @@
+from datetime import datetime
 from extensions import db
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -78,9 +79,26 @@ class Trabajador(db.Model):
     empresa = db.relationship("Empresa", back_populates="trabajadores")
     horario = db.relationship("Horario", back_populates="trabajadores")
     rol = db.relationship("Rol", back_populates="trabajadores")
+    
+    # Relación con fichajes
+    fichajes = db.relationship("Fichaje", back_populates="trabajador", cascade="all, delete-orphan")
 
     def set_password(self, password):
         self.passw = generate_password_hash(password)
 
     def check_password(self, password):
         return check_password_hash(self.passw, password)
+
+
+# NUEVA CLASE PARA FICHAJES
+class Fichaje(db.Model):
+    __tablename__ = "fichaje"
+
+    id_fichaje = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    fecha_hora = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    tipo = db.Column(db.String(20), nullable=False) # 'ENTRADA' o 'SALIDA'
+    latitud = db.Column(db.Float, nullable=False)
+    longitud = db.Column(db.Float, nullable=False)
+    
+    id_trabajador = db.Column(db.Integer, db.ForeignKey("trabajador.id_trabajador"), nullable=False)
+    trabajador = db.relationship("Trabajador", back_populates="fichajes")

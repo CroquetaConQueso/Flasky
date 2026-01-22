@@ -1,11 +1,10 @@
-# app.py
 from functools import wraps
 
 from flask import Flask, render_template, redirect, url_for, flash, session, request
 from sqlalchemy.exc import OperationalError
 
 from config import Config
-from extensions import db, migrate
+from extensions import db, migrate, jwt, api
 from models import Trabajador, Empresa, Rol, Horario, Dia, Franja
 from forms import (
     LoginForm,
@@ -15,6 +14,9 @@ from forms import (
     HorarioForm,
     FranjaForm,
 )
+from resources.auth import blp as AuthBlueprint
+from resources.empresa import blp as EmpresaBlueprint
+from resources.fichaje import blp as FichajeBlueprint
 
 
 def create_app():
@@ -23,8 +25,14 @@ def create_app():
 
     db.init_app(app)
     migrate.init_app(app, db)
+    jwt.init_app(app)
+    api.init_app(app)
 
-    # ----------------- DECORADOR DE ADMIN ----------------- #
+    # REGISTRO DE BLUEPRINTS
+    api.register_blueprint(AuthBlueprint, url_prefix="/api")
+    api.register_blueprint(EmpresaBlueprint, url_prefix="/api")
+    api.register_blueprint(FichajeBlueprint, url_prefix="/api")
+
     def admin_required(view):
         @wraps(view)
         def wrapped(*args, **kwargs):
@@ -37,7 +45,11 @@ def create_app():
             except OperationalError:
                 db.session.remove()
                 session.clear()
-                flash("Error de conexión. Vuelve a iniciar sesión.", "danger")
+                flash(
+                    "Se ha perdido la conexión con la base de datos. "
+                    "Vuelve a iniciar sesión.",
+                    "danger",
+                )
                 return redirect(url_for("login"))
 
             if not trabajador or not trabajador.rol:
@@ -53,12 +65,10 @@ def create_app():
 
         return wrapped
 
-    # ----------------- PÁGINA INICIAL ----------------- #
     @app.get("/")
     def index():
         return render_template("index.html")
 
-    # ----------------- LOGIN ----------------- #
     @app.route("/login", methods=["GET", "POST"])
     def login():
         form = LoginForm()
@@ -70,7 +80,6 @@ def create_app():
         if form.validate_on_submit():
             trabajador = Trabajador.query.filter_by(nif=form.nif.data).first()
 
-            # CAMBIO DE SEGURIDAD: Usamos check_password
             if trabajador and trabajador.check_password(form.password.data):
                 if trabajador.idEmpresa != form.empresa_id.data:
                     flash("El trabajador no pertenece a esa empresa.", "danger")
@@ -96,7 +105,6 @@ def create_app():
         flash("Sesión cerrada.", "info")
         return redirect(url_for("index"))
 
-    # ----------------- PANEL ----------------- #
     @app.get("/panel")
     @admin_required
     def panel():
@@ -108,7 +116,6 @@ def create_app():
 
         return render_template("panel.html", trabajador=trabajador, empresa=empresa)
 
-    # ----------------- EMPRESA (NIVEL BÁSICO) ----------------- #
     @app.route("/empresa", methods=["GET", "POST"])
     @admin_required
     def empresa_view():
@@ -126,14 +133,13 @@ def create_app():
             empresa.latitud = form.latitud.data
             empresa.longitud = form.longitud.data
             empresa.radio = form.radio.data
-            
+
             db.session.commit()
             flash("Datos de empresa actualizados.", "success")
             return redirect(url_for("empresa_view"))
 
         return render_template("empresa.html", form=form)
 
-    # ----------------- ROLES ----------------- #
     @app.get("/roles")
     @admin_required
     def roles_list():
@@ -188,7 +194,6 @@ def create_app():
             flash("Rol eliminado.", "success")
         return redirect(url_for("roles_list"))
 
-    # ----------------- EMPLEADOS ----------------- #
     @app.get("/empleados")
     @admin_required
     def empleados_list():
@@ -231,16 +236,14 @@ def create_app():
                     nif=nif_limpio,
                     nombre=form.nombre.data,
                     apellidos=form.apellidos.data,
-                    # NO PASAMOS PASSW AQUÍ, USAMOS SET_PASSWORD
                     email=form.email.data,
                     telef=form.telef.data,
                     idEmpresa=empresa_id,
                     idHorario=form.horario_id.data,
                     idRol=form.rol_id.data,
                 )
-                # CAMBIO DE SEGURIDAD: Encriptamos la contraseña
                 trabajador.set_password(form.passw.data)
-                
+
                 db.session.add(trabajador)
                 db.session.commit()
                 flash("Empleado creado.", "success")
@@ -273,11 +276,8 @@ def create_app():
         horarios = Horario.query.order_by(Horario.nombre_horario).all()
         form.horario_id.choices = [(h.id_horario, h.nombre_horario) for h in horarios]
 
-        # CAMBIO DE SEGURIDAD: NO rellenamos el campo password en el GET 
-        # para no mostrar el hash al usuario.
         if request.method == 'GET':
             form.horario_id.data = trabajador.idHorario
-            # form.passw.data NO SE ASIGNA
 
         if form.validate_on_submit():
             trabajador.nif = form.nif.data
@@ -287,8 +287,7 @@ def create_app():
             trabajador.telef = form.telef.data
             trabajador.idRol = form.rol_id.data
             trabajador.idHorario = form.horario_id.data
-            
-            # CAMBIO DE SEGURIDAD: Solo si se envía contraseña, la actualizamos encriptada
+
             if form.passw.data:
                 trabajador.set_password(form.passw.data)
 
@@ -315,7 +314,6 @@ def create_app():
             flash("Empleado eliminado.", "success")
         return redirect(url_for("empleados_list"))
 
-    # ----------------- HORARIOS ----------------- #
     @app.get("/horarios")
     @admin_required
     def horarios_list():
@@ -440,8 +438,6 @@ def create_app():
             franjas=franjas,
             form=form,
         )
-
-    # ----------------- GESTIÓN DE EMPRESAS (NIVEL EXPERTO) ----------------- #
 
     @app.get("/empresas")
     @admin_required
