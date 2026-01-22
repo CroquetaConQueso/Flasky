@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Roles{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h4 mb-0">Roles</h1>
+  <a href="{{ url_for('rol_new') }}" class="btn btn-primary btn-sm">Nuevo rol</a>
+</div>
+
+<table class="table table-striped table-hover">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Nombre</th>
+      <th style="width: 160px;">Acciones</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for rol in roles %}
+      <tr>
+        <td>{{ rol.id_rol }}</td>
+        <td>{{ rol.nombre_rol }}</td>
+        <td>
+          <a href="{{ url_for('rol_edit', rol_id=rol.id_rol) }}" class="btn btn-sm btn-outline-secondary">Editar</a>
+          <form action="{{ url_for('rol_delete', rol_id=rol.id_rol) }}" method="post" style="display:inline;">
+            <button type="submit" class="btn btn-sm btn-outline-danger">Eliminar</button>
+          </form>
+        </td>
+      </tr>
+    {% else %}
+      <tr>
+        <td colspan="3" class="text-center">No hay roles definidos.</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

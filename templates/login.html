@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Acceso administradores{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h1 class="h4 mb-3">Acceso administradores</h1>
+
+        <form method="post">
+          {{ form.hidden_tag() }}
+
+          <div class="mb-3">
+            {{ form.nif.label(class="form-label") }}
+            {{ form.nif(class="form-control") }}
+          </div>
+
+          <div class="mb-3">
+            {{ form.password.label(class="form-label") }}
+            {{ form.password(class="form-control") }}
+          </div>
+
+          <div class="mb-3">
+            {{ form.empresa_id.label(class="form-label") }}
+            {{ form.empresa_id(class="form-select") }}
+          </div>
+
+          {{ form.submit(class="btn btn-primary") }}
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

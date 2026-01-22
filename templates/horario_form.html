@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<h1 class="h4 mb-4">{{ titulo }}</h1>
+
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <form method="post">
+          {{ form.hidden_tag() }}
+
+          <div class="mb-3">
+            {{ form.nombre_horario.label(class="form-label") }}
+            {{ form.nombre_horario(class="form-control") }}
+          </div>
+
+          <div class="mb-3">
+            {{ form.descripcion.label(class="form-label") }}
+            {{ form.descripcion(class="form-control") }}
+          </div>
+
+          {{ form.submit(class="btn btn-primary") }}
+          <a href="{{ url_for('horarios_list') }}" class="btn btn-secondary ms-2">
+            Cancelar
+          </a>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

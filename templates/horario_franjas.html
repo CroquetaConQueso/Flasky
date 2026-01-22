@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Franjas del horario{% endblock %}
+
+{% block content %}
+<h1 class="h4 mb-3">Franjas del horario: {{ horario.nombre_horario }}</h1>
+
+<p class="text-muted">
+  {{ horario.descripcion or "Sin descripción" }}
+</p>
+
+<div class="row">
+  <div class="col-lg-7">
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <h2 class="h5 mb-3">Franjas definidas</h2>
+
+        <table class="table table-sm table-hover align-middle">
+          <thead>
+            <tr>
+              <th>Día</th>
+              <th>Hora entrada</th>
+              <th>Hora salida</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for f in franjas %}
+            <tr>
+              <td>{{ f.dia.nombre }}</td>
+              <td>{{ f.hora_entrada.strftime("%H:%M") }}</td>
+              <td>{{ f.hora_salida.strftime("%H:%M") }}</td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="3" class="text-center">
+                No hay franjas definidas para este horario.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h2 class="h5 mb-3">Añadir franja</h2>
+        <form method="post">
+          {{ form.hidden_tag() }}
+
+          <div class="mb-3">
+            {{ form.dia_id.label(class="form-label") }}
+            {{ form.dia_id(class="form-select") }}
+          </div>
+
+          <div class="mb-3">
+            {{ form.hora_entrada.label(class="form-label") }}
+            {{ form.hora_entrada(class="form-control", placeholder="09:00") }}
+          </div>
+
+          <div class="mb-3">
+            {{ form.hora_salida.label(class="form-label") }}
+            {{ form.hora_salida(class="form-control", placeholder="17:00") }}
+          </div>
+
+          {{ form.submit(class="btn btn-primary") }}
+          <a href="{{ url_for('horarios_list') }}" class="btn btn-secondary ms-2">
+            Volver a horarios
+          </a>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<a href="{{ url_for('horarios_list') }}" class="btn btn-link btn-sm mt-3">
+  Volver al listado de horarios
+</a>
+{% endblock %}

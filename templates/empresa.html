@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Datos de la empresa{% endblock %}
+
+{% block content %}
+<h1 class="h4 mb-3">Datos de la empresa</h1>
+
+<form method="post">
+  {{ form.hidden_tag() }}
+
+  <div class="mb-3">
+    {{ form.nombrecomercial.label(class="form-label") }}
+    {{ form.nombrecomercial(class="form-control") }}
+  </div>
+
+  <div class="mb-3">
+    {{ form.cif.label(class="form-label") }}
+    {{ form.cif(class="form-control") }}
+  </div>
+
+  {{ form.submit(class="btn btn-primary") }}
+</form>
+{% endblock %}

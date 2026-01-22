@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Panel administrador{% endblock %}
+
+{% block content %}
+<h1 class="h4 mb-4">Panel de administración</h1>
+
+<div class="row g-3">
+  <div class="col-md-3">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h2 class="h5">Empresa</h2>
+        <p class="mb-3">Datos de la empresa seleccionada en el login.</p>
+        <a href="{{ url_for('empresa_view') }}" class="btn btn-outline-primary btn-sm">
+          Gestionar empresa
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h2 class="h5">Roles</h2>
+        <p class="mb-3">Altas, modificaciones y bajas de roles.</p>
+        <a href="{{ url_for('roles_list') }}" class="btn btn-outline-primary btn-sm">
+          Gestionar roles
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h2 class="h5">Horarios</h2>
+        <p class="mb-3">Definir horarios y sus franjas por día.</p>
+        <a href="{{ url_for('horarios_list') }}" class="btn btn-outline-primary btn-sm">
+          Gestionar horarios
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h2 class="h5">Empleados</h2>
+        <p class="mb-3">Gestión de empleados de la empresa.</p>
+        <a href="{{ url_for('empleados_list') }}" class="btn btn-outline-primary btn-sm">
+          Gestionar empleados
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
