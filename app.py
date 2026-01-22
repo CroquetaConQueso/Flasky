@@ -1,7 +1,7 @@
 # app.py
 from functools import wraps
 
-from flask import Flask, render_template, redirect, url_for, flash, session
+from flask import Flask, render_template, redirect, url_for, flash, session, request
 from sqlalchemy.exc import OperationalError
 
 from config import Config
@@ -221,21 +221,27 @@ def create_app():
         form.horario_id.choices = [(h.id_horario, h.nombre_horario) for h in horarios]
 
         if form.validate_on_submit():
-            trabajador = Trabajador(
-                nif=form.nif.data,
-                nombre=form.nombre.data,
-                apellidos=form.apellidos.data,
-                passw=form.passw.data,
-                email=form.email.data,
-                telef=form.telef.data,
-                idEmpresa=empresa_id,
-                idHorario=form.horario_id.data,
-                idRol=form.rol_id.data,
-            )
-            db.session.add(trabajador)
-            db.session.commit()
-            flash("Empleado creado.", "success")
-            return redirect(url_for("empleados_list"))
+            nif_limpio = form.nif.data.strip().upper()
+            existente = Trabajador.query.filter_by(nif=nif_limpio).first()
+
+            if existente:
+                flash(f"Error: Ya existe un empleado con el NIF {nif_limpio}.", "danger")
+            else:
+                trabajador = Trabajador(
+                    nif=nif_limpio,
+                    nombre=form.nombre.data,
+                    apellidos=form.apellidos.data,
+                    passw=form.passw.data,
+                    email=form.email.data,
+                    telef=form.telef.data,
+                    idEmpresa=empresa_id,
+                    idHorario=form.horario_id.data,
+                    idRol=form.rol_id.data,
+                )
+                db.session.add(trabajador)
+                db.session.commit()
+                flash("Empleado creado.", "success")
+                return redirect(url_for("empleados_list"))
 
         return render_template(
             "empleados_form.html",
@@ -264,8 +270,10 @@ def create_app():
         horarios = Horario.query.order_by(Horario.nombre_horario).all()
         form.horario_id.choices = [(h.id_horario, h.nombre_horario) for h in horarios]
 
-        form.passw.data = trabajador.passw
-        form.horario_id.data = trabajador.idHorario
+        # CORRECCIÓN: Solo cargamos datos manuales en GET
+        if request.method == 'GET':
+            form.passw.data = trabajador.passw
+            form.horario_id.data = trabajador.idHorario
 
         if form.validate_on_submit():
             trabajador.nif = form.nif.data
@@ -311,14 +319,21 @@ def create_app():
     def horario_new():
         form = HorarioForm()
         if form.validate_on_submit():
-            horario = Horario(
-                nombre_horario=form.nombre_horario.data.strip(),
-                descripcion=form.descripcion.data,
-            )
-            db.session.add(horario)
-            db.session.commit()
-            flash("Horario creado.", "success")
-            return redirect(url_for("horarios_list"))
+            nombre = form.nombre_horario.data.strip()
+            existente = Horario.query.filter_by(nombre_horario=nombre).first()
+
+            if existente:
+                flash(f"Error: Ya existe un horario con el nombre '{nombre}'.", "danger")
+            else:
+                horario = Horario(
+                    nombre_horario=nombre,
+                    descripcion=form.descripcion.data,
+                )
+                db.session.add(horario)
+                db.session.commit()
+                flash("Horario creado.", "success")
+                return redirect(url_for("horarios_list"))
+
         return render_template(
             "horario_form.html", form=form, titulo="Nuevo horario"
         )
@@ -417,6 +432,80 @@ def create_app():
             franjas=franjas,
             form=form,
         )
+
+    # ----------------- GESTIÓN DE EMPRESAS (NIVEL EXPERTO) ----------------- #
+
+    # Listar todas las empresas (Solo Superadmin)
+    @app.get("/empresas")
+    @admin_required
+    def empresas_list():
+        # Verificación manual de rol Superadministrador
+        user_id = session.get("user_id")
+        trabajador = Trabajador.query.get(user_id)
+
+        # Si el rol es nulo o no es Superadmin, bloqueamos
+        if not trabajador.rol or trabajador.rol.nombre_rol.lower() != "superadministrador":
+            flash("Acceso restringido a Superadministradores.", "danger")
+            return redirect(url_for("panel"))
+
+        empresas = Empresa.query.order_by(Empresa.nombrecomercial).all()
+        return render_template("empresas_list.html", empresas=empresas)
+
+    # Crear nueva empresa (Solo Superadmin)
+    @app.route("/empresas/nueva", methods=["GET", "POST"])
+    @admin_required
+    def empresa_new():
+        # Verificación de rol
+        user_id = session.get("user_id")
+        trabajador = Trabajador.query.get(user_id)
+        if not trabajador.rol or trabajador.rol.nombre_rol.lower() != "superadministrador":
+            flash("Acceso restringido a Superadministradores.", "danger")
+            return redirect(url_for("panel"))
+
+        form = EmpresaForm()
+        if form.validate_on_submit():
+            nombre = form.nombrecomercial.data.strip()
+            cif = form.cif.data.strip().upper()
+
+            # VALIDACIÓN: Comprobar duplicados antes de crear
+            existe_nombre = Empresa.query.filter_by(nombrecomercial=nombre).first()
+            existe_cif = Empresa.query.filter_by(cif=cif).first()
+
+            if existe_nombre:
+                flash(f"Error: Ya existe una empresa llamada '{nombre}'.", "danger")
+            elif existe_cif:
+                flash(f"Error: Ya existe una empresa con CIF '{cif}'.", "danger")
+            else:
+                empresa = Empresa(nombrecomercial=nombre, cif=cif)
+                db.session.add(empresa)
+                db.session.commit()
+                flash("Empresa creada correctamente.", "success")
+                return redirect(url_for("empresas_list"))
+
+        return render_template("empresa_form.html", form=form, titulo="Nueva Empresa")
+
+    # Eliminar empresa (Solo Superadmin y si no tiene empleados)
+    @app.post("/empresas/<int:empresa_id>/eliminar")
+    @admin_required
+    def empresa_delete(empresa_id):
+        # Verificación de rol
+        user_id = session.get("user_id")
+        trabajador = Trabajador.query.get(user_id)
+        if not trabajador.rol or trabajador.rol.nombre_rol.lower() != "superadministrador":
+            flash("No tienes permisos para esto.", "danger")
+            return redirect(url_for("panel"))
+
+        empresa = Empresa.query.get_or_404(empresa_id)
+
+        # VALIDACIÓN: No eliminar si tiene empleados
+        if empresa.trabajadores:
+            flash("No se puede eliminar la empresa porque tiene empleados asociados.", "danger")
+        else:
+            db.session.delete(empresa)
+            db.session.commit()
+            flash("Empresa eliminada.", "success")
+
+        return redirect(url_for("empresas_list"))
 
     return app
 
