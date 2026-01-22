@@ -1,4 +1,5 @@
 from extensions import db
+from werkzeug.security import generate_password_hash, check_password_hash
 
 
 class Empresa(db.Model):
@@ -7,6 +8,9 @@ class Empresa(db.Model):
     id_empresa = db.Column(db.Integer, primary_key=True, autoincrement=True)
     nombrecomercial = db.Column(db.String(120), nullable=False)
     cif = db.Column(db.String(20), nullable=False)
+    latitud = db.Column(db.Float, nullable=True)
+    longitud = db.Column(db.Float, nullable=True)
+    radio = db.Column(db.Integer, nullable=True, default=100)
 
     trabajadores = db.relationship("Trabajador", back_populates="empresa")
 
@@ -74,3 +78,9 @@ class Trabajador(db.Model):
     empresa = db.relationship("Empresa", back_populates="trabajadores")
     horario = db.relationship("Horario", back_populates="trabajadores")
     rol = db.relationship("Rol", back_populates="trabajadores")
+
+    def set_password(self, password):
+        self.passw = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.passw, password)

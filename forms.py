@@ -1,4 +1,3 @@
-# forms.py
 from flask_wtf import FlaskForm
 from wtforms import (
     StringField,
@@ -6,6 +5,8 @@ from wtforms import (
     SubmitField,
     SelectField,
     TelField,
+    FloatField,
+    IntegerField
 )
 from wtforms.fields import TimeField
 from wtforms.validators import DataRequired, Length, Email
@@ -23,6 +24,9 @@ class EmpresaForm(FlaskForm):
         "Nombre comercial", validators=[DataRequired(), Length(max=120)]
     )
     cif = StringField("CIF", validators=[DataRequired(), Length(max=20)])
+    latitud = FloatField("Latitud", validators=[DataRequired()])
+    longitud = FloatField("Longitud", validators=[DataRequired()])
+    radio = IntegerField("Radio (metros)", validators=[DataRequired()])
     submit = SubmitField("Guardar")
 
 
