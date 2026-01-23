@@ -1,28 +1,31 @@
-/* static/css/login.css */
+/* static/css/login.css - EDICIÓN DARK RED */
 
-/* Fondo de toda la página: Un degradado elegante */
+/* Fondo: Negro casi puro */
 body {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background-color: #121212;
+    background-image: radial-gradient(circle at 50% 50%, #2d1b1b 0%, #000000 100%);
     min-height: 100vh;
     display: flex;
-    align-items: center; /* Centrar verticalmente */
-    justify-content: center; /* Centrar horizontalmente */
+    align-items: center;
+    justify-content: center;
+    color: #e0e0e0;
 }
 
-/* La tarjeta del formulario */
+/* La tarjeta del formulario: Gris oscuro */
 .login-card {
-    background: white;
-    border: none;
-    border-radius: 20px; /* Bordes muy redondeados */
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2); /* Sombra profunda */
+    background: #1E1E1E; /* Gris oscuro material */
+    border: 1px solid #333;
+    border-radius: 20px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6); /* Sombra negra fuerte */
     padding: 2.5rem;
     width: 100%;
-    max-width: 450px; /* Que no sea demasiado ancha */
+    max-width: 450px;
     transition: transform 0.3s ease;
 }
 
 .login-card:hover {
-    transform: translateY(-5px); /* Efecto de levitación sutil */
+    transform: translateY(-5px);
+    border-color: #FF4B2B; /* Borde rojo sutil al pasar ratón */
 }
 
 /* El título / Icono */
@@ -33,66 +36,72 @@ body {
 
 .login-icon {
     font-size: 3rem;
-    background: -webkit-linear-gradient(#667eea, #764ba2);
+    background: -webkit-linear-gradient(#FF416C, #FF4B2B); /* Degradado Rojo-Naranja */
     -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent; /* Icono con degradado */
+    -webkit-text-fill-color: transparent;
     margin-bottom: 1rem;
+    filter: drop-shadow(0 0 10px rgba(255, 65, 108, 0.5)); /* Resplandor rojo */
 }
 
 .login-title {
     font-weight: 800;
-    color: #2d3748;
+    color: #ffffff;
     margin-bottom: 0.5rem;
 }
 
 .login-subtitle {
-    color: #718096;
+    color: #a0aec0;
     font-size: 0.9rem;
 }
 
-/* Inputs personalizados */
+/* Inputs personalizados oscuros */
 .form-floating > .form-control {
-    border: 2px solid #edf2f7;
+    background-color: #2d2d2d;
+    border: 2px solid #333;
+    color: white;
     border-radius: 12px;
     padding-left: 1rem;
 }
 
 .form-floating > .form-control:focus {
-    border-color: #764ba2;
-    box-shadow: 0 0 0 4px rgba(118, 75, 162, 0.1);
+    background-color: #333;
+    border-color: #FF4B2B;
+    box-shadow: 0 0 0 4px rgba(255, 75, 43, 0.2);
+    color: white;
 }
 
 .form-floating > label {
     padding-left: 1rem;
-    color: #a0aec0;
+    color: #888;
 }
 
-/* El botón de entrar */
+/* El botón de entrar: FUEGO */
 .btn-login {
-    background: linear-gradient(to right, #667eea, #764ba2);
+    background: linear-gradient(to right, #FF416C, #FF4B2B);
     border: none;
     border-radius: 12px;
     padding: 12px;
     font-weight: 700;
+    color: white;
     letter-spacing: 1px;
     text-transform: uppercase;
     font-size: 0.9rem;
     margin-top: 1.5rem;
-    box-shadow: 0 4px 15px rgba(118, 75, 162, 0.35);
+    box-shadow: 0 4px 15px rgba(255, 75, 43, 0.4);
     transition: all 0.3s ease;
 }
 
 .btn-login:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(118, 75, 162, 0.45);
-    background: linear-gradient(to right, #5a6fd6, #674092); /* Un poco más oscuro */
+    box-shadow: 0 6px 20px rgba(255, 75, 43, 0.6);
+    background: linear-gradient(to right, #ff2e63, #ff6b35);
 }
 
 /* Select de Empresa */
 .form-select {
+    background-color: #2d2d2d;
+    color: white;
     border-radius: 12px;
-    border: 2px solid #edf2f7;
+    border: 2px solid #333;
     padding: 1rem;
-    height: auto;
-    cursor: pointer;
 }

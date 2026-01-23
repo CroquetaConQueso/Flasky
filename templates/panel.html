@@ -12,26 +12,29 @@
     <div class="welcome-banner animate__animated animate__fadeIn">
         <div class="row align-items-center">
             <div class="col-md-8">
-                <h2>👋 Hola, {{ trabajador.nombre }}</h2>
-                <p class="mb-0">
-                    Bienvenido al panel de gestión de <strong>{{ empresa.nombrecomercial if empresa else 'Sin Empresa' }}</strong>.
-                    Aquí tienes un resumen de la actividad hoy.
+                <div class="d-flex align-items-center mb-2">
+                    <i class="ph-fill ph-hand-waving banner-icon-hand me-3" style="font-size: 3.5rem;"></i>
+                    <h2 class="m-0" style="font-size: 2.5rem; color: black;">Hola, {{ trabajador.nombre }}</h2>
+                </div>
+                <p class="mb-0 fs-5 fw-bold" style="color: #333;">
+                    Bienvenido al sistema de <u>{{ empresa.nombrecomercial if empresa else 'Sin Empresa' }}</u>.
                 </p>
             </div>
+            
             <div class="col-md-4 text-end d-none d-md-block">
-                <span style="font-size: 4rem; opacity: 0.3;">📊</span>
+                <i class="ph-fill ph-factory banner-icon-factory" style="font-size: 6rem;"></i>
             </div>
         </div>
     </div>
 
-    <div class="row g-4 mb-4">
+    <div class="row g-4 mb-5">
         <div class="col-md-3 col-sm-6">
             <div class="stat-card">
                 <div class="stat-info">
                     <h3>{{ stats.empleados }}</h3>
                     <p>Empleados</p>
                 </div>
-                <div class="stat-icon icon-blue">👥</div>
+                <i class="ph-bold ph-user stat-icon"></i>
             </div>
         </div>
         
@@ -41,7 +44,7 @@
                     <h3>{{ stats.roles }}</h3>
                     <p>Roles</p>
                 </div>
-                <div class="stat-icon icon-purple">🏷️</div>
+                <i class="ph-bold ph-tag stat-icon"></i>
             </div>
         </div>
 
@@ -51,7 +54,7 @@
                     <h3>{{ stats.horarios }}</h3>
                     <p>Horarios</p>
                 </div>
-                <div class="stat-icon icon-orange">⏰</div>
+                <i class="ph-bold ph-clock stat-icon"></i>
             </div>
         </div>
 
@@ -61,7 +64,7 @@
                     <h3>{{ stats.fichajes_total }}</h3>
                     <p>Fichajes Tot.</p>
                 </div>
-                <div class="stat-icon icon-green">✅</div>
+                <i class="ph-bold ph-check-circle stat-icon"></i>
             </div>
         </div>
     </div>
@@ -69,38 +72,54 @@
     <h4 class="section-title">Gestión Rápida</h4>
     
     <div class="row g-4">
-        <div class="col-lg-3 col-md-6">
-            <a href="{{ url_for('empleados_list') }}" class="action-card">
-                <span class="action-icon">👔</span>
-                <div class="action-title">Empleados</div>
-                <div class="action-desc">Alta, baja y modificación de datos de la plantilla.</div>
+        
+        <div class="col-lg-8">
+            <a href="{{ url_for('empleados_list') }}" class="action-card action-wide">
+                <div class="row align-items-center h-100 g-0">
+                    <div class="col-md-4 text-center text-md-start">
+                        <i class="ph-bold ph-users-three action-icon"></i>
+                    </div>
+                    <div class="col-md-8 text-center text-md-start">
+                        <div class="action-title">Plantilla de Empleados</div>
+                        <div class="action-desc">
+                            Gestión centralizada del personal. Altas, bajas y credenciales.
+                        </div>
+                    </div>
+                </div>
             </a>
         </div>
 
-        <div class="col-lg-3 col-md-6">
-            <a href="{{ url_for('empresa_view') }}" class="action-card">
-                <span class="action-icon">🏢</span>
-                <div class="action-title">Empresa & Ubicación</div>
-                <div class="action-desc">Ajusta las coordenadas GPS y el radio de fichaje.</div>
+        <div class="col-lg-4">
+            <a href="{{ url_for('horarios_list') }}" class="action-card d-flex flex-column justify-content-center h-100">
+                <i class="ph-bold ph-calendar-blank action-icon"></i>
+                <div class="action-title">Horarios</div>
+                <div class="action-desc">Turnos y Calendarios</div>
             </a>
         </div>
 
-        <div class="col-lg-3 col-md-6">
-            <a href="{{ url_for('horarios_list') }}" class="action-card">
-                <span class="action-icon">📅</span>
-                <div class="action-title">Horarios y Turnos</div>
-                <div class="action-desc">Define franjas horarias y asigna turnos de trabajo.</div>
+        <div class="col-lg-4">
+            <a href="{{ url_for('empresa_view') }}" class="action-card d-flex flex-column justify-content-center h-100">
+                <i class="ph-bold ph-buildings action-icon"></i>
+                <div class="action-title">Sede</div>
+                <div class="action-desc">Ubicación GPS y Radio</div>
             </a>
         </div>
 
-        <div class="col-lg-3 col-md-6">
-            <a href="{{ url_for('roles_list') }}" class="action-card">
-                <span class="action-icon">🔑</span>
-                <div class="action-title">Roles y Permisos</div>
-                <div class="action-desc">Crea niveles de acceso para administradores o empleados.</div>
+        <div class="col-lg-8">
+            <a href="{{ url_for('roles_list') }}" class="action-card action-wide">
+                <div class="row align-items-center h-100 g-0">
+                    <div class="col-md-8 text-center text-md-end order-2 order-md-1">
+                        <div class="action-title">Permisos y Roles</div>
+                        <div class="action-desc">
+                            Control de seguridad y niveles de acceso admin.
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-center text-md-end order-1 order-md-2">
+                        <i class="ph-bold ph-lock-key action-icon"></i>
+                    </div>
+                </div>
             </a>
         </div>
-    </div>
-
+    </div> 
 </div>
 {% endblock %}
