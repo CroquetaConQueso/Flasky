@@ -1,74 +1,106 @@
 {% extends "base.html" %}
 
-{% block title %}Panel administrador{% endblock %}
+{% block title %}Panel de Control{% endblock %}
+
+{% block css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/panel.css') }}">
+{% endblock %}
 
 {% block content %}
-<h1 class="h4 mb-4">Panel de administración</h1>
+<div class="container-fluid px-0">
 
-<div class="row g-3">
-  <div class="col-md-3">
-    <div class="card shadow-sm h-100">
-      <div class="card-body">
-        <h2 class="h5">Empresa</h2>
-        <p class="mb-3 text-muted small">Datos de la empresa seleccionada: <strong>{{ empresa.nombrecomercial if empresa else 'Ninguna' }}</strong>.</p>
-        <a href="{{ url_for('empresa_view') }}" class="btn btn-outline-primary btn-sm stretched-link">
-          Gestionar empresa
-        </a>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-md-3">
-    <div class="card shadow-sm h-100">
-      <div class="card-body">
-        <h2 class="h5">Roles</h2>
-        <p class="mb-3 text-muted small">Altas, modificaciones y bajas de roles.</p>
-        <a href="{{ url_for('roles_list') }}" class="btn btn-outline-primary btn-sm stretched-link">
-          Gestionar roles
-        </a>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-md-3">
-    <div class="card shadow-sm h-100">
-      <div class="card-body">
-        <h2 class="h5">Horarios</h2>
-        <p class="mb-3 text-muted small">Definir horarios y sus franjas por día.</p>
-        <a href="{{ url_for('horarios_list') }}" class="btn btn-outline-primary btn-sm stretched-link">
-          Gestionar horarios
-        </a>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-md-3">
-    <div class="card shadow-sm h-100">
-      <div class="card-body">
-        <h2 class="h5">Empleados</h2>
-        <p class="mb-3 text-muted small">Gestión de empleados de la empresa actual.</p>
-        <a href="{{ url_for('empleados_list') }}" class="btn btn-outline-primary btn-sm stretched-link">
-          Gestionar empleados
-        </a>
-      </div>
-    </div>
-  </div>
-
-  {% if trabajador.rol and trabajador.rol.nombre_rol|lower == 'superadministrador' %}
-  <div class="col-12 mt-4">
-    <div class="card shadow-sm border-warning">
-      <div class="card-body d-flex justify-content-between align-items-center">
-        <div>
-          <h2 class="h5 text-warning mb-1">👑 Zona Superadministrador</h2>
-          <p class="mb-0 text-muted">Gestión global de todas las empresas del sistema (Alta y Baja).</p>
+    <div class="welcome-banner animate__animated animate__fadeIn">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h2>👋 Hola, {{ trabajador.nombre }}</h2>
+                <p class="mb-0">
+                    Bienvenido al panel de gestión de <strong>{{ empresa.nombrecomercial if empresa else 'Sin Empresa' }}</strong>.
+                    Aquí tienes un resumen de la actividad hoy.
+                </p>
+            </div>
+            <div class="col-md-4 text-end d-none d-md-block">
+                <span style="font-size: 4rem; opacity: 0.3;">📊</span>
+            </div>
         </div>
-        <a href="{{ url_for('empresas_list') }}" class="btn btn-warning">
-          Gestionar Empresas
-        </a>
-      </div>
     </div>
-  </div>
-  {% endif %}
+
+    <div class="row g-4 mb-4">
+        <div class="col-md-3 col-sm-6">
+            <div class="stat-card">
+                <div class="stat-info">
+                    <h3>{{ stats.empleados }}</h3>
+                    <p>Empleados</p>
+                </div>
+                <div class="stat-icon icon-blue">👥</div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 col-sm-6">
+            <div class="stat-card">
+                <div class="stat-info">
+                    <h3>{{ stats.roles }}</h3>
+                    <p>Roles</p>
+                </div>
+                <div class="stat-icon icon-purple">🏷️</div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6">
+            <div class="stat-card">
+                <div class="stat-info">
+                    <h3>{{ stats.horarios }}</h3>
+                    <p>Horarios</p>
+                </div>
+                <div class="stat-icon icon-orange">⏰</div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6">
+            <div class="stat-card">
+                <div class="stat-info">
+                    <h3>{{ stats.fichajes_total }}</h3>
+                    <p>Fichajes Tot.</p>
+                </div>
+                <div class="stat-icon icon-green">✅</div>
+            </div>
+        </div>
+    </div>
+
+    <h4 class="section-title">Gestión Rápida</h4>
+    
+    <div class="row g-4">
+        <div class="col-lg-3 col-md-6">
+            <a href="{{ url_for('empleados_list') }}" class="action-card">
+                <span class="action-icon">👔</span>
+                <div class="action-title">Empleados</div>
+                <div class="action-desc">Alta, baja y modificación de datos de la plantilla.</div>
+            </a>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <a href="{{ url_for('empresa_view') }}" class="action-card">
+                <span class="action-icon">🏢</span>
+                <div class="action-title">Empresa & Ubicación</div>
+                <div class="action-desc">Ajusta las coordenadas GPS y el radio de fichaje.</div>
+            </a>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <a href="{{ url_for('horarios_list') }}" class="action-card">
+                <span class="action-icon">📅</span>
+                <div class="action-title">Horarios y Turnos</div>
+                <div class="action-desc">Define franjas horarias y asigna turnos de trabajo.</div>
+            </a>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <a href="{{ url_for('roles_list') }}" class="action-card">
+                <span class="action-icon">🔑</span>
+                <div class="action-title">Roles y Permisos</div>
+                <div class="action-desc">Crea niveles de acceso para administradores o empleados.</div>
+            </a>
+        </div>
+    </div>
 
 </div>
 {% endblock %}

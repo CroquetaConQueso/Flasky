@@ -1,0 +1,129 @@
+/* static/css/panel.css */
+
+/* --- BANNER DE BIENVENIDA --- */
+.welcome-banner {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 16px;
+    padding: 2.5rem;
+    color: white;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 20px rgba(102, 126, 234, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+.welcome-banner h2 {
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+}
+
+.welcome-banner p {
+    font-size: 1.1rem;
+    opacity: 0.9;
+}
+
+/* --- TARJETAS DE ESTADÍSTICAS (Métricas) --- */
+.stat-card {
+    background: white;
+    border: none;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 15px rgba(0,0,0,0.1);
+}
+
+.stat-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+/* Colores específicos para iconos */
+.icon-blue { background-color: #e3f2fd; color: #1e88e5; }
+.icon-green { background-color: #e8f5e9; color: #43a047; }
+.icon-purple { background-color: #f3e5f5; color: #8e24aa; }
+.icon-orange { background-color: #fff3e0; color: #fb8c00; }
+
+.stat-info h3 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin: 0;
+    color: #2d3748;
+}
+
+.stat-info p {
+    margin: 0;
+    color: #718096;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+/* --- GRID DE ACCIONES RÁPIDAS --- */
+.section-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #4a5568;
+    margin-bottom: 1rem;
+    margin-top: 2rem;
+    border-left: 4px solid #764ba2;
+    padding-left: 10px;
+}
+
+.action-card {
+    background: white;
+    border: none;
+    border-radius: 16px;
+    padding: 2rem;
+    text-align: center;
+    text-decoration: none; /* Quitar subrayado de enlaces */
+    color: inherit;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
+    display: block; /* Para que ocupe todo el espacio */
+    height: 100%;
+    border: 1px solid transparent;
+}
+
+.action-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+    border-color: #e2e8f0;
+    color: #4e54c8; /* Cambiar color de texto al pasar ratón */
+}
+
+.action-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    display: inline-block;
+    transition: transform 0.3s ease;
+}
+
+.action-card:hover .action-icon {
+    transform: scale(1.2) rotate(5deg);
+}
+
+.action-title {
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+.action-desc {
+    color: #718096;
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
