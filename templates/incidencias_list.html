@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Incidencias y Solicitudes{% endblock %}
+
+{% block css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/incidencias.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+
+    <div class="d-flex justify-content-between align-items-center mb-5">
+        <h2 class="page-title-box">
+            <i class="ph-bold ph-files"></i> Gestión de Incidencias
+        </h2>
+    </div>
+
+    {% if not incidencias %}
+        <div class="alert alert-light border-3 border-dark p-5 text-center">
+            <i class="ph-duotone ph-coffee fs-1 mb-3"></i>
+            <h4 class="fw-bold">Todo tranquilo por aquí</h4>
+            <p>No hay solicitudes de vacaciones ni bajas pendientes.</p>
+        </div>
+    {% else %}
+        <div class="row">
+            {% for i in incidencias %}
+            <div class="col-12 mb-4">
+                <div class="card card-pop ticket-card">
+                    <div class="card-body p-4 d-flex flex-wrap align-items-center justify-content-between gap-4">
+
+                        <div class="d-flex align-items-center gap-3" style="min-width: 200px;">
+                            <div class="bg-black text-white p-3 rounded-circle">
+                                {% if i.tipo == 'VACACIONES' %}<i class="ph-bold ph-airplane-tilt fs-4"></i>
+                                {% elif i.tipo == 'BAJA' %}<i class="ph-bold ph-first-aid fs-4"></i>
+                                {% elif i.tipo == 'OLVIDO' %}<i class="ph-bold ph-clock-counter-clockwise fs-4"></i>
+                                {% else %}<i class="ph-bold ph-info fs-4"></i>{% endif %}
+                            </div>
+                            <div>
+                                <h5 class="fw-black mb-0 text-uppercase">{{ i.tipo }}</h5>
+                                <span class="fw-bold text-muted small">{{ i.trabajador.nombre }} {{ i.trabajador.apellidos }}</span>
+                            </div>
+                        </div>
+
+                        <div class="text-center border-start border-end border-2 border-dark px-4 d-none d-md-block">
+                            <small class="d-block fw-bold text-muted uppercase">Periodo Solicitado</small>
+                            <div class="fs-5 fw-black">
+                                {{ i.fecha_inicio.strftime('%d/%m') }} <i class="ph-bold ph-arrow-right mx-1"></i> {{ i.fecha_fin.strftime('%d/%m') }}
+                            </div>
+                            <small class="text-muted">{{ i.fecha_solicitud.strftime('%d/%m/%Y') }} (Solicitado)</small>
+                        </div>
+
+                        <div class="text-center">
+                            {% if i.estado == 'APROBADA' %}
+                                <div class="stamp stamp-approved">APROBADO</div>
+                            {% elif i.estado == 'RECHAZADA' %}
+                                <div class="stamp stamp-rejected">DENEGADO</div>
+                            {% else %}
+                                <div class="badge bg-warning text-dark border-2 border-dark py-2 px-3 fs-6">
+                                    <i class="ph-bold ph-hourglass"></i> PENDIENTE
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            <a href="{{ url_for('incidencia_resolver', incidencia_id=i.id_incidencia) }}" class="btn btn-pop btn-pop-primary">
+                                <i class="ph-bold ph-gavel"></i> Gestionar
+                            </a>
+                        </div>
+
+                    </div>
+
+                    {% if i.comentario_trabajador %}
+                    <div class="card-footer bg-light border-top-2 border-dark">
+                        <i class="ph-bold ph-chat-circle-text me-2"></i>
+                        <span class="fst-italic fw-bold">"{{ i.comentario_trabajador }}"</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

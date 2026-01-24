@@ -1,0 +1,45 @@
+.stamp {
+    font-weight: 900;
+    text-transform: uppercase;
+    padding: 5px 15px;
+    border: 4px solid;
+    display: inline-block;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 2px;
+    opacity: 0.9;
+    /* Efecto gastado (opcional) */
+    -webkit-mask-image: url('https://s3-us-west-2.amazonaws.com/s.cdpn.io/8399/grunge.png');
+    mask-image: url('https://s3-us-west-2.amazonaws.com/s.cdpn.io/8399/grunge.png');
+    mask-size: 90%;
+    -webkit-mask-size: 90%; 
+}
+
+.stamp-approved {
+    color: #00b894; /* Verde */
+    border-color: #00b894;
+    transform: rotate(-8deg);
+}
+
+.stamp-rejected {
+    color: #d63031; /* Rojo */
+    border-color: #d63031;
+    transform: rotate(8deg);
+}
+
+.stamp-pending {
+    color: #fdcb6e; /* Amarillo */
+    border-color: #fdcb6e;
+    border-style: dashed;
+    transform: rotate(0deg);
+    background: #2d3436;
+}
+
+/* 2. TARJETA DE TICKET */
+.ticket-card {
+    border-left: 10px solid #000 !important;
+    transition: transform 0.2s ease;
+}
+
+.ticket-card:hover {
+    transform: translateX(5px);
+}

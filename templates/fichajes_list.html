@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Historial de Fichajes{% endblock %}
+
+{% block content %}
+<div class="container">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="page-title-box">
+            <i class="ph-bold ph-clock-user"></i> Control de Presencia
+        </h2>
+        <span class="badge bg-black text-white p-2">Últimos 100 movimientos</span>
+    </div>
+
+    {% if not fichajes %}
+        <div class="alert alert-light border-3 border-dark p-5 text-center">
+            <i class="ph-duotone ph-ghost fs-1 mb-3"></i>
+            <h4 class="fw-bold">No hay registros aún</h4>
+            <p>Tus empleados todavía no han estrenado la App Móvil.</p>
+        </div>
+    {% else %}
+        <div class="card card-pop">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead style="background-color: #ffde59; border-bottom: 3px solid #000;">
+                            <tr>
+                                <th class="py-3 ps-4 text-uppercase">Empleado</th>
+                                <th class="py-3 text-uppercase text-center">Acción</th>
+                                <th class="py-3 text-uppercase">Fecha y Hora</th>
+                                <th class="py-3 text-uppercase text-center">Ubicación</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for f in fichajes %}
+                            <tr style="border-bottom: 1px solid #000;">
+                                <td class="ps-4 fw-bold">
+                                    <div class="d-flex flex-column">
+                                        <span>{{ f.trabajador.nombre }} {{ f.trabajador.apellidos }}</span>
+                                        <span class="small text-muted">{{ f.trabajador.nif }}</span>
+                                    </div>
+                                </td>
+                                
+                                <td class="text-center">
+                                    {% if f.tipo == 'ENTRADA' %}
+                                        <span class="badge" style="background-color: #00ff9d; color: #000; border: 2px solid #000; font-size: 0.9rem;">
+                                            <i class="ph-bold ph-sign-in"></i> ENTRADA
+                                        </span>
+                                    {% else %}
+                                        <span class="badge" style="background-color: #ff4d6d; color: white; border: 2px solid #000; font-size: 0.9rem;">
+                                            <i class="ph-bold ph-sign-out"></i> SALIDA
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                
+                                <td class="fw-bold font-monospace">
+                                    <i class="ph-bold ph-calendar-blank me-1"></i> {{ f.fecha_hora.strftime('%d/%m/%Y') }}
+                                    <br>
+                                    <i class="ph-bold ph-clock me-1"></i> {{ f.fecha_hora.strftime('%H:%M:%S') }}
+                                </td>
+                                
+                                <td class="text-center">
+                                    <a href="https://www.google.com/maps/search/?api=1&query={{ f.latitud }},{{ f.longitud }}" 
+                                       target="_blank" 
+                                       class="btn btn-sm btn-link text-dark fw-bold text-decoration-none border-2 border-dark"
+                                       style="background: #e9ecef; border: 2px solid #000;">
+                                        <i class="ph-bold ph-map-pin text-danger"></i> Ver Mapa
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

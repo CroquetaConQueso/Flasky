@@ -106,13 +106,13 @@ def create_app():
         trabajador = Trabajador.query.get(session.get("user_id"))
         empresa_id = session.get("empresa_id")
         empresa = Empresa.query.get(empresa_id) if empresa_id else None
-        
+
         # Estadísticas para el Dashboard
         from models import Fichaje
         stats = {
             "empleados": 0, "horarios": 0, "roles": 0, "fichajes_total": 0
         }
-        
+
         if empresa_id:
             stats["empleados"] = Trabajador.query.filter_by(idEmpresa=empresa_id).count()
             stats["horarios"] = Horario.query.count()
@@ -237,7 +237,7 @@ def create_app():
         empresa_id = session.get("empresa_id")
         # Usamos 'empleado' consistentemente para evitar errores de nombres
         empleado = Trabajador.query.get_or_404(emp_id)
-        
+
         if empleado.idEmpresa != empresa_id:
             flash("Acceso denegado.", "danger")
             return redirect(url_for("empleados_list"))
@@ -259,13 +259,13 @@ def create_app():
             empleado.telef = form.telef.data
             empleado.idRol = form.rol_id.data
             empleado.idHorario = form.horario_id.data
-            
+
             if form.passw.data:
                 empleado.set_password(form.passw.data)
 
             db.session.commit()
             flash("Empleado actualizado.", "success")
-            return redirect(url_for("empleados_list")) 
+            return redirect(url_for("empleados_list"))
 
         return render_template("empleados_form.html", form=form, titulo="Editar Empleado", is_new=False)
 
@@ -326,12 +326,12 @@ def create_app():
         return redirect(url_for("horarios_list"))
 
     # --- GESTIÓN AVANZADA DE FRANJAS ---
-    
+
     @app.route("/horarios/<int:horario_id>/franjas", methods=["GET", "POST"])
     @admin_required
     def horario_franjas(horario_id):
         horario = Horario.query.get_or_404(horario_id)
-        
+
         # LOGICA POST: Añadir nueva franja
         if request.method == "POST":
             # Si el POST viene por error del formulario de días, redirigimos
@@ -340,7 +340,7 @@ def create_app():
 
             h_inicio = request.form.get("hora_inicio")
             h_fin = request.form.get("hora_fin")
-            
+
             if h_inicio and h_fin:
                 try:
                     nueva = Franja(
@@ -354,9 +354,9 @@ def create_app():
                     flash("Franja añadida.", "success")
                 except ValueError:
                     flash("Formato de hora inválido.", "danger")
-            
+
             return redirect(url_for("horario_franjas", horario_id=horario_id))
-        
+
         # LOGICA GET: Mostrar
         franjas = Franja.query.filter_by(id_horario=horario_id).order_by(Franja.hora_entrada).all()
         return render_template("horario_franjas.html", horario=horario, franjas=franjas)
@@ -373,7 +373,7 @@ def create_app():
         horario.viernes = True if request.form.get("viernes") else False
         horario.sabado = True if request.form.get("sabado") else False
         horario.domingo = True if request.form.get("domingo") else False
-        
+
         db.session.commit()
         flash("Días laborables actualizados.", "success")
         return redirect(url_for("horario_franjas", horario_id=horario_id))
@@ -424,5 +424,66 @@ def create_app():
         return redirect(url_for("empresas_list"))
 
     return app
+
+    # --- GESTIÓN DE INCIDENCIAS (NUEVO) ---
+
+    @app.get("/incidencias")
+    @admin_required
+    def incidencias_list():
+        empresa_id = session.get("empresa_id")
+        incidencias = (
+            Incidencia.query.join(Trabajador)
+            .filter(Trabajador.idEmpresa == empresa_id)
+            .order_by(Incidencia.fecha_solicitud.desc())
+            .all()
+        )
+        return render_template("incidencias_list.html", incidencias=incidencias)
+
+    @app.route("/incidencias/<int:incidencia_id>/resolver", methods=["GET", "POST"])
+    @admin_required
+    def incidencia_resolver(incidencia_id):
+        incidencia = Incidencia.query.get_or_404(incidencia_id)
+        empresa_id = session.get("empresa_id")
+
+        if incidencia.trabajador.idEmpresa != empresa_id:
+            flash("No tienes permiso.", "danger")
+            return redirect(url_for("incidencias_list"))
+
+        form = IncidenciaAdminForm(obj=incidencia)
+
+        if form.validate_on_submit():
+            incidencia.estado = form.estado.data
+            incidencia.comentario_admin = form.comentario_admin.data
+            db.session.commit()
+
+            if incidencia.estado == 'APROBADA':
+                flash("Incidencia aprobada.", "success")
+            elif incidencia.estado == 'RECHAZADA':
+                flash("Incidencia rechazada.", "warning")
+            else:
+                flash("Incidencia actualizada.", "info")
+
+            return redirect(url_for("incidencias_list"))
+
+        return render_template("incidencia_resolver.html", form=form, incidencia=incidencia)
+
+    # --- VISUALIZACIÓN DE FICHAJES (HISTORIAL) ---
+
+    @app.get("/fichajes")
+    @admin_required
+    def fichajes_list():
+        empresa_id = session.get("empresa_id")
+
+        # Filtro básico: Obtener fichajes de empleados de mi empresa
+        # Ordenados: El más reciente primero
+        fichajes = (
+            Fichaje.query.join(Trabajador)
+            .filter(Trabajador.idEmpresa == empresa_id)
+            .order_by(Fichaje.fecha_hora.desc())
+            .limit(100) # Limitamos a los últimos 100 para no saturar la vista inicial
+            .all()
+        )
+
+        return render_template("fichajes_list.html", fichajes=fichajes)
 
 app = create_app()

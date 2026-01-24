@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Resolver Incidencia{% endblock %}
+
+{% block css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/incidencias.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 700px;">
+
+    <div class="mb-4">
+        <a href="{{ url_for('incidencias_list') }}" class="btn btn-link text-dark fw-bold px-0">
+            <i class="ph-bold ph-arrow-left"></i> Volver al listado
+        </a>
+    </div>
+
+    <div class="card card-pop mb-4" style="background-color: #fffdf0;"> <div class="card-body p-4">
+            <h5 class="fw-black text-uppercase border-bottom border-3 border-dark pb-2 mb-3">
+                <i class="ph-bold ph-user"></i> Datos del Solicitante
+            </h5>
+            <div class="row g-3 fw-bold">
+                <div class="col-md-6">
+                    <span class="text-muted small d-block">EMPLEADO</span>
+                    {{ incidencia.trabajador.nombre }} {{ incidencia.trabajador.apellidos }}
+                </div>
+                <div class="col-md-6">
+                    <span class="text-muted small d-block">TIPO SOLICITUD</span>
+                    <span class="badge bg-black text-white">{{ incidencia.tipo }}</span>
+                </div>
+                <div class="col-md-12 mt-3">
+                    <span class="text-muted small d-block">MOTIVO / COMENTARIO</span>
+                    <p class="fs-5 fst-italic mb-0">"{{ incidencia.comentario_trabajador or 'Sin comentarios' }}"</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card card-pop">
+        <div class="card-header-pop">
+            <i class="ph-bold ph-stamp"></i> Resolución Administrativa
+        </div>
+        <div class="card-body p-4">
+            <form method="POST">
+                {{ form.hidden_tag() }}
+
+                <div class="mb-4">
+                    <label class="form-label">Dictamen</label>
+                    {{ form.estado(class="form-select fs-5 fw-bold") }}
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label">Observaciones (Opcional)</label>
+                    {{ form.comentario_admin(class="form-control", rows="3", placeholder="Ej: Disfruta de tus vacaciones / Denegado por falta de personal...") }}
+                </div>
+
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-pop btn-pop-success py-3">
+                        <i class="ph-bold ph-floppy-disk"></i> GUARDAR RESOLUCIÓN
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

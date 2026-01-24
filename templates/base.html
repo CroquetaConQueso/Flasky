@@ -20,30 +20,57 @@
   <div class="container">
     
     <a class="navbar-brand navbar-brand-pop" href="{{ url_for('index') }}">
-      RRHH Flask
+      <i class="ph-bold ph-lightning"></i> RRHH Flask
     </a>
 
     <button class="navbar-toggler" type="button"
             data-bs-toggle="collapse" data-bs-target="#navbarNav"
             aria-controls="navbarNav" aria-expanded="false"
-            aria-label="Toggle navigation" style="border: 2px solid black;">
-      <span class="navbar-toggler-icon" style="filter: invert(1);"></span>
+            aria-label="Toggle navigation" style="border: 3px solid black; box-shadow: 3px 3px 0px #000;">
+      <span class="navbar-toggler-icon"></span>
     </button>
 
     <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav ms-auto align-items-center">
+      <ul class="navbar-nav ms-auto align-items-center gap-2">
         {% if session.get("user_id") %}
-          <li class="nav-item"><a class="nav-link nav-link-pop{% if request.endpoint == 'panel' %} active{% endif %}" href="{{ url_for('panel') }}">Panel</a></li>
-          <li class="nav-item"><a class="nav-link nav-link-pop{% if request.endpoint == 'empresa_view' %} active{% endif %}" href="{{ url_for('empresa_view') }}">Empresa</a></li>
-          <li class="nav-item"><a class="nav-link nav-link-pop{% if request.endpoint == 'roles_list' %} active{% endif %}" href="{{ url_for('roles_list') }}">Roles</a></li>
-          <li class="nav-item"><a class="nav-link nav-link-pop{% if request.endpoint == 'horarios_list' %} active{% endif %}" href="{{ url_for('horarios_list') }}">Horarios</a></li>
-          <li class="nav-item"><a class="nav-link nav-link-pop{% if request.endpoint == 'empleados_list' %} active{% endif %}" href="{{ url_for('empleados_list') }}">Empleados</a></li>
           
-          <li class="nav-item mx-2 d-none d-lg-block">
-             <span style="font-size: 1.5rem; filter: drop-shadow(2px 2px 0px #000);">⚡</span>
+          <li class="nav-item">
+            <a class="nav-link nav-link-pop{% if request.endpoint == 'panel' %} active{% endif %}" href="{{ url_for('panel') }}">
+                <i class="ph-bold ph-squares-four me-1"></i> Panel
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <a class="nav-link nav-link-pop{% if request.endpoint == 'fichajes_list' %} active{% endif %}" href="{{ url_for('fichajes_list') }}">
+                <i class="ph-bold ph-clock-user me-1"></i> Fichajes
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <a class="nav-link nav-link-pop{% if request.endpoint == 'incidencias_list' %} active{% endif %}" href="{{ url_for('incidencias_list') }}">
+                <i class="ph-bold ph-files me-1"></i> Incidencias
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <a class="nav-link nav-link-pop{% if request.endpoint == 'empleados_list' %} active{% endif %}" href="{{ url_for('empleados_list') }}">
+                <i class="ph-bold ph-users me-1"></i> Empleados
+            </a>
           </li>
           
-          <li class="nav-item"><a class="nav-link nav-link-pop nav-link-logout" href="{{ url_for('logout') }}">Salir</a></li>
+          <li class="nav-item dropdown">
+            <a class="nav-link nav-link-pop dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                <i class="ph-bold ph-gear me-1"></i> Config
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end border-3 border-dark shadow p-0 overflow-hidden" style="border-radius: 0;">
+                <li><a class="dropdown-item py-2 fw-bold" href="{{ url_for('empresa_view') }}"><i class="ph-bold ph-buildings me-2"></i> Empresa</a></li>
+                <li><a class="dropdown-item py-2 fw-bold" href="{{ url_for('horarios_list') }}"><i class="ph-bold ph-clock me-2"></i> Horarios</a></li>
+                <li><a class="dropdown-item py-2 fw-bold" href="{{ url_for('roles_list') }}"><i class="ph-bold ph-identification-badge me-2"></i> Roles</a></li>
+                <li><hr class="dropdown-divider border-dark m-0"></li>
+                <li><a class="dropdown-item py-2 fw-bold text-danger" href="{{ url_for('logout') }}"><i class="ph-bold ph-sign-out me-2"></i> Salir</a></li>
+            </ul>
+          </li>
+
         {% else %}
           <li class="nav-item"><a class="nav-link nav-link-pop{% if request.endpoint == 'login' %} active{% endif %}" href="{{ url_for('login') }}">Entrar</a></li>
         {% endif %}
@@ -57,8 +84,15 @@
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       {% for category, message in messages %}
-        <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert" 
-             style="border: 3px solid black; box-shadow: 5px 5px 0px #000; background: #fff; font-weight: bold;">
+        <div class="alert alert-{{ category }} alert-dismissible fade show mb-4" role="alert" 
+             style="border: 3px solid black; box-shadow: 6px 6px 0px #000; background: #fff; font-weight: bold; border-radius: 0;">
+          
+          {% if category == 'success' %}<i class="ph-bold ph-check-circle text-success fs-4 align-middle me-2"></i>
+          {% elif category == 'danger' %}<i class="ph-bold ph-warning-circle text-danger fs-4 align-middle me-2"></i>
+          {% elif category == 'warning' %}<i class="ph-bold ph-warning text-warning fs-4 align-middle me-2"></i>
+          {% else %}<i class="ph-bold ph-info text-info fs-4 align-middle me-2"></i>
+          {% endif %}
+
           {{ message }}
           <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
