@@ -8,7 +8,8 @@ from wtforms import (
     FloatField,
     IntegerField,
     TextAreaField,
-    DateField  # Importante: DateField añadido
+    DateField,
+    DateTimeLocalField # <--- IMPORTANTE: Necesario para fecha y hora conjunta
 )
 from wtforms.fields import TimeField
 from wtforms.validators import DataRequired, Length, Email, Optional
@@ -44,10 +45,8 @@ class TrabajadorForm(FlaskForm):
     nombre = StringField("Nombre", validators=[DataRequired(), Length(max=80)])
     apellidos = StringField("Apellidos", validators=[DataRequired(), Length(max=120)])
     
-    # Optional permite editar sin cambiar la contraseña
     passw = PasswordField("Contraseña", validators=[Optional(), Length(max=255)])
     
-    # Restauramos Email() porque ya tienes la librería instalada
     email = StringField("Email", validators=[DataRequired(), Email(), Length(max=120)])
     
     telef = TelField("Teléfono")
@@ -74,7 +73,7 @@ class FranjaForm(FlaskForm):
     )
     submit = SubmitField("Añadir franja")
 
-# 7. INCIDENCIAS (ADMIN RESOLVER)
+# 7. INCIDENCIAS (RESOLVER - ADMIN)
 class IncidenciaAdminForm(FlaskForm):
     estado = SelectField("Resolución", choices=[
         ('PENDIENTE', 'Pendiente'),
@@ -86,7 +85,7 @@ class IncidenciaAdminForm(FlaskForm):
     
     submit = SubmitField("Guardar Resolución")
 
-# 8. INCIDENCIAS (ADMIN CREAR NUEVA) - ¡NUEVO!
+# 8. INCIDENCIAS (CREAR - ADMIN)
 class IncidenciaCrearForm(FlaskForm):
     trabajador_id = SelectField("Empleado", coerce=int, validators=[DataRequired()])
     
@@ -98,10 +97,23 @@ class IncidenciaCrearForm(FlaskForm):
         ('HORAS_EXTRA', 'Horas Extra (Compensación)')
     ], validators=[DataRequired()])
     
-    # DateField requiere el formato YYYY-MM-DD del input HTML date
     fecha_inicio = DateField("Fecha Inicio", format='%Y-%m-%d', validators=[DataRequired()])
     fecha_fin = DateField("Fecha Fin", format='%Y-%m-%d', validators=[DataRequired()])
     
     comentario = TextAreaField("Observaciones", validators=[Length(max=500)])
     
     submit = SubmitField("Registrar Incidencia")
+
+# 9. FICHAJE MANUAL (ADMIN) - ¡NUEVO!
+class FichajeManualForm(FlaskForm):
+    trabajador_id = SelectField("Empleado", coerce=int, validators=[DataRequired()])
+    
+    tipo = SelectField("Tipo de Movimiento", choices=[
+        ('ENTRADA', 'Entrada (Inicio jornada)'),
+        ('SALIDA', 'Salida (Fin jornada)')
+    ], validators=[DataRequired()])
+    
+    # DateTimeLocal permite elegir día, hora y minuto
+    fecha_hora = DateTimeLocalField("Fecha y Hora", format='%Y-%m-%dT%H:%M', validators=[DataRequired()])
+    
+    submit = SubmitField("Registrar Fichaje")

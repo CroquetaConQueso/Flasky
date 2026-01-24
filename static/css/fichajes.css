@@ -1,0 +1,142 @@
+/* static/css/fichajes.css */
+
+/* --- 1. ESTILOS DE FORMULARIOS (STICKERS) --- */
+
+.sticker-label {
+    background: #ffde59; 
+    border: 3px solid #000;
+    padding: 6px 18px;
+    font-weight: 900;
+    display: inline-block;
+    transform: rotate(-2deg);
+    margin-bottom: -15px; 
+    position: relative;
+    z-index: 5;
+    box-shadow: 4px 4px 0px #000;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+}
+
+/* Input de fecha monoespaciado */
+input[type="datetime-local"] {
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+}
+
+/* --- 2. ESTILOS DE LA TABLA (FILAS Y PUNTOS) --- */
+
+.shift-row {
+    transition: background-color 0.2s;
+}
+.shift-row:hover {
+    background-color: #fff9db; /* Amarillo muy suave al pasar ratón */
+}
+
+/* Flecha de tiempo (Icono) */
+.timeline-arrow {
+    font-size: 1.2rem;
+    color: #000;
+    margin: 0 10px;
+    opacity: 0.3;
+}
+
+/* Puntos de Estado (Status Dots) */
+.status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    border: 1px solid rgba(0,0,0,0.5);
+}
+
+/* Estados específicos */
+.status-dot.active {
+    background-color: #00ff9d; /* Verde neón */
+    box-shadow: 0 0 6px #00ff9d;
+    animation: pulse 2s infinite;
+}
+
+.status-dot.closed {
+    background-color: #adb5bd; /* Gris */
+}
+
+.status-dot.error {
+    background-color: #ff4d6d; /* Rojo Error/Zombie */
+    box-shadow: 0 0 6px #ff4d6d;
+}
+
+.status-dot.warning {
+    background-color: #ffca3a; /* Amarillo Warning */
+}
+
+@keyframes pulse {
+    0% { transform: scale(0.95); opacity: 0.7; }
+    50% { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(0.95); opacity: 0.7; }
+}
+
+/* --- 3. NUEVOS ESTILOS (BADGES DE HORA) --- */
+
+.time-badge {
+    font-family: 'Courier New', monospace;
+    font-weight: 900;
+    padding: 4px 8px;
+    border: 2px solid #000;
+    box-shadow: 2px 2px 0px rgba(0,0,0,0.2);
+    font-size: 0.9rem;
+    display: inline-block;
+    min-width: 60px;
+    text-align: center;
+}
+
+.time-badge-entry {
+    background-color: #d0f4de; /* Verde Menta */
+    color: #000;
+}
+
+.time-badge-exit {
+    background-color: #ff99c8; /* Rosa Chicle */
+    color: #000;
+}
+
+/* --- 4. NUEVOS ESTILOS (FILTROS) --- */
+
+/* Input Select (Empleados) - Naranja */
+.filter-input-orange {
+    background-color: #ffca3a !important; /* Naranja Solar */
+    color: #000 !important;
+    border: 3px solid #000 !important;
+    font-weight: 700;
+    box-shadow: 4px 4px 0px #000;
+}
+
+/* Input Date (Fecha) - Azul */
+.filter-input-blue {
+    background-color: #a9def9 !important; /* Azul Cielo */
+    color: #000 !important;
+    border: 3px solid #000 !important;
+    font-weight: 700;
+    box-shadow: 4px 4px 0px #000;
+}
+
+.filter-input-orange:focus, .filter-input-blue:focus {
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0px #000;
+    outline: none;
+}
+
+/* Botón Filtrar (Morado Vibrante) */
+.btn-filter-action {
+    background-color: #c77dff; /* Morado Eléctrico */
+    color: #000;
+    font-weight: 900;
+    border: 3px solid #000;
+    box-shadow: 4px 4px 0px #000;
+    text-transform: uppercase;
+}
+
+.btn-filter-action:hover {
+    background-color: #e0aaff;
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000;
+}

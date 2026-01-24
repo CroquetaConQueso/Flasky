@@ -2,6 +2,10 @@
 
 {% block title %}Historial de Fichajes{% endblock %}
 
+{% block css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/fichajes.css') }}">
+{% endblock %}
+
 {% block content %}
 <div class="container">
 
@@ -9,63 +13,170 @@
         <h2 class="page-title-box">
             <i class="ph-bold ph-clock-user"></i> Control de Presencia
         </h2>
-        <span class="badge bg-black text-white p-2">Últimos 100 movimientos</span>
+        
+        <div class="d-flex gap-3 align-items-center">
+            <a href="{{ url_for('fichaje_nuevo') }}" class="btn btn-pop btn-pop-primary d-none d-md-inline-block">
+                <i class="ph-bold ph-plus"></i> NUEVO FICHAJE
+            </a>
+        </div>
     </div>
 
-    {% if not fichajes %}
+    <div class="card card-pop mb-4" style="background-color: #fff;">
+        <div class="card-body p-4">
+            <form method="GET" action="{{ url_for('fichajes_list') }}" class="row g-3 align-items-end">
+                
+                <div class="col-md-4">
+                    <label class="fw-black small text-uppercase mb-2"><i class="ph-bold ph-user"></i> Empleado</label>
+                    <select name="empleado_id" class="form-select filter-input-orange">
+                        <option value="">-- Todos los empleados --</option>
+                        {% for emp in empleados %}
+                            <option value="{{ emp.id_trabajador }}" {% if filtro_empleado == emp.id_trabajador %}selected{% endif %}>
+                                {{ emp.nombre }} {{ emp.apellidos }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="fw-black small text-uppercase mb-2"><i class="ph-bold ph-calendar"></i> Fecha</label>
+                    <input type="date" name="fecha" class="form-control filter-input-blue" value="{{ filtro_fecha if filtro_fecha else '' }}">
+                </div>
+
+                <div class="col-md-5 d-flex gap-2">
+                    <button type="submit" class="btn btn-filter-action w-100 py-2">
+                        <i class="ph-bold ph-magnifying-glass"></i> FILTRAR RESULTADOS
+                    </button>
+                    
+                    {% if filtro_empleado or filtro_fecha %}
+                        <a href="{{ url_for('fichajes_list') }}" class="btn btn-outline-dark border-3 border-dark fw-bold" title="Limpiar filtros" style="box-shadow: 4px 4px 0px #000;">
+                            <i class="ph-bold ph-broom fs-4"></i>
+                        </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="d-flex flex-wrap justify-content-center gap-3 gap-md-4 mb-4 p-3" 
+         style="background-color: #f8f9fa; border: 2px dashed #000; border-radius: 8px;">
+        
+        <div class="d-flex align-items-center gap-2">
+            <div class="status-dot active"></div>
+            <span class="fw-bold small text-uppercase">Trabajando</span>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <div class="status-dot closed"></div>
+            <span class="fw-bold small text-uppercase">Cerrado</span>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <div class="status-dot warning"></div>
+            <i class="ph-bold ph-warning text-danger"></i>
+            <span class="fw-bold small text-uppercase">Revisar (+12h)</span>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <div class="status-dot error"></div>
+            <i class="ph-bold ph-siren text-danger"></i>
+            <span class="fw-bold small text-uppercase text-danger">Error / Sin Cierre</span>
+        </div>
+
+        <div class="d-none d-md-block border-end border-2 border-dark mx-2"></div>
+
+        <div class="d-flex align-items-center gap-2">
+            <span class="time-badge time-badge-entry py-1 px-2" style="min-width: auto; font-size: 0.7rem;">ENTRADA</span>
+            <i class="ph-bold ph-arrow-right small"></i>
+            <span class="time-badge time-badge-exit py-1 px-2" style="min-width: auto; font-size: 0.7rem;">SALIDA</span>
+        </div>
+    </div>
+
+    {% if not jornadas %}
         <div class="alert alert-light border-3 border-dark p-5 text-center">
             <i class="ph-duotone ph-ghost fs-1 mb-3"></i>
-            <h4 class="fw-bold">No hay registros aún</h4>
-            <p>Tus empleados todavía no han estrenado la App Móvil.</p>
+            <h4 class="fw-bold">No se encontraron registros</h4>
+            <p>Intenta cambiar los filtros de búsqueda.</p>
         </div>
     {% else %}
         <div class="card card-pop">
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0">
-                        <thead style="background-color: #ffde59; border-bottom: 3px solid #000;">
+                        <thead style="background-color: #ffde59; border-bottom: 4px solid #000;">
                             <tr>
                                 <th class="py-3 ps-4 text-uppercase">Empleado</th>
-                                <th class="py-3 text-uppercase text-center">Acción</th>
-                                <th class="py-3 text-uppercase">Fecha y Hora</th>
+                                <th class="py-3 text-uppercase text-center">Jornada (Inicio <i class="ph-bold ph-arrow-right mx-1"></i> Fin)</th>
+                                <th class="py-3 text-uppercase text-center">Duración</th>
+                                <th class="py-3 text-uppercase text-center">Estado</th>
                                 <th class="py-3 text-uppercase text-center">Ubicación</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for f in fichajes %}
-                            <tr style="border-bottom: 1px solid #000;">
-                                <td class="ps-4 fw-bold">
+                            {% for j in jornadas %}
+                            <tr class="shift-row" style="border-bottom: 2px solid #000;">
+                                <td class="ps-4">
                                     <div class="d-flex flex-column">
-                                        <span>{{ f.trabajador.nombre }} {{ f.trabajador.apellidos }}</span>
-                                        <span class="small text-muted">{{ f.trabajador.nif }}</span>
+                                        <span class="fw-bold">{{ j.trabajador.nombre }} {{ j.trabajador.apellidos }}</span>
+                                        <span class="small text-muted font-monospace">{{ j.trabajador.nif }}</span>
                                     </div>
                                 </td>
-                                
+
+                                <td>
+                                    <div class="d-flex align-items-center justify-content-center gap-2">
+                                        {% if j.entrada %}
+                                            <div class="d-flex flex-column align-items-center">
+                                                <span class="time-badge time-badge-entry">
+                                                    {{ j.entrada.fecha_hora.strftime('%H:%M') }}
+                                                </span>
+                                                <small class="text-muted fw-bold mt-1" style="font-size: 0.7rem;">
+                                                    {{ j.entrada.fecha_hora.strftime('%d/%m') }}
+                                                </small>
+                                            </div>
+                                        {% else %}
+                                            <div class="time-badge bg-danger text-white border-dark">???</div>
+                                        {% endif %}
+
+                                        <i class="ph-bold ph-arrow-right timeline-arrow"></i>
+
+                                        {% if j.salida %}
+                                            <div class="d-flex flex-column align-items-center">
+                                                <span class="time-badge time-badge-exit">
+                                                    {{ j.salida.fecha_hora.strftime('%H:%M') }}
+                                                </span>
+                                                <small class="text-muted fw-bold mt-1" style="font-size: 0.7rem;">
+                                                    {{ j.salida.fecha_hora.strftime('%d/%m') }}
+                                                </small>
+                                            </div>
+                                        {% elif j.status == 'active' %}
+                                            <span class="badge bg-success border border-dark text-white p-2">
+                                                <i class="ph-bold ph-spinner animate-spin me-1"></i> EN CURSO
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-danger border border-dark text-white p-2">
+                                                <i class="ph-bold ph-warning me-1"></i> SIN CIERRE
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+
+                                <td class="text-center fw-bold font-monospace fs-5">
+                                    {{ j.duracion }}
+                                    {% if j.is_long %} <i class="ph-bold ph-warning text-danger ms-1" title="Jornada > 12h"></i> {% endif %}
+                                    {% if j.is_zombie %} <i class="ph-bold ph-siren text-danger ms-1" title="Error Zombie"></i> {% endif %}
+                                </td>
+
                                 <td class="text-center">
-                                    {% if f.tipo == 'ENTRADA' %}
-                                        <span class="badge" style="background-color: #00ff9d; color: #000; border: 2px solid #000; font-size: 0.9rem;">
-                                            <i class="ph-bold ph-sign-in"></i> ENTRADA
-                                        </span>
-                                    {% else %}
-                                        <span class="badge" style="background-color: #ff4d6d; color: white; border: 2px solid #000; font-size: 0.9rem;">
-                                            <i class="ph-bold ph-sign-out"></i> SALIDA
-                                        </span>
+                                    <div class="status-dot {{ j.status }}" title="Estado: {{ j.status }}"></div>
+                                </td>
+
+                                <td class="text-center">
+                                    {% if j.entrada %}
+                                        <a href="https://www.google.com/maps/search/?api=1&query={{ j.entrada.latitud }},{{ j.entrada.longitud }}" 
+                                           target="_blank" class="btn btn-sm btn-link text-dark border-2 border-dark bg-light"
+                                           style="box-shadow: 2px 2px 0px #000; text-decoration: none;">
+                                            <i class="ph-bold ph-map-trifold fs-5"></i>
+                                        </a>
                                     {% endif %}
-                                </td>
-                                
-                                <td class="fw-bold font-monospace">
-                                    <i class="ph-bold ph-calendar-blank me-1"></i> {{ f.fecha_hora.strftime('%d/%m/%Y') }}
-                                    <br>
-                                    <i class="ph-bold ph-clock me-1"></i> {{ f.fecha_hora.strftime('%H:%M:%S') }}
-                                </td>
-                                
-                                <td class="text-center">
-                                    <a href="https://www.google.com/maps/search/?api=1&query={{ f.latitud }},{{ f.longitud }}" 
-                                       target="_blank" 
-                                       class="btn btn-sm btn-link text-dark fw-bold text-decoration-none border-2 border-dark"
-                                       style="background: #e9ecef; border: 2px solid #000;">
-                                        <i class="ph-bold ph-map-pin text-danger"></i> Ver Mapa
-                                    </a>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -75,5 +186,9 @@
             </div>
         </div>
     {% endif %}
+    
+    <a href="{{ url_for('fichaje_nuevo') }}" class="btn btn-pop btn-pop-primary d-md-none position-fixed bottom-0 end-0 m-4 shadow-lg" style="z-index: 1000; border-radius: 50%; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center;">
+        <i class="ph-bold ph-plus fs-3"></i>
+    </a>
 </div>
 {% endblock %}

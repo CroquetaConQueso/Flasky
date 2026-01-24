@@ -16,7 +16,8 @@ from forms import (
     HorarioForm,
     FranjaForm,
     IncidenciaAdminForm,
-    IncidenciaCrearForm  # <--- IMPORTANTE: Nuevo form
+    IncidenciaCrearForm,
+    FichajeManualForm
 )
 from resources.auth import blp as AuthBlueprint
 from resources.empresa import blp as EmpresaBlueprint
@@ -32,7 +33,7 @@ def create_app():
     jwt.init_app(app)
     api.init_app(app)
 
-    # REGISTRO DE BLUEPRINTS (API para la App Móvil)
+    # REGISTRO DE BLUEPRINTS
     api.register_blueprint(AuthBlueprint, url_prefix="/api")
     api.register_blueprint(EmpresaBlueprint, url_prefix="/api")
     api.register_blueprint(FichajeBlueprint, url_prefix="/api")
@@ -109,7 +110,6 @@ def create_app():
         empresa_id = session.get("empresa_id")
         empresa = Empresa.query.get(empresa_id) if empresa_id else None
 
-        # Estadísticas para el Dashboard
         from models import Fichaje
         stats = {
             "empleados": 0, "horarios": 0, "roles": 0, "fichajes_total": 0
@@ -119,7 +119,6 @@ def create_app():
             stats["empleados"] = Trabajador.query.filter_by(idEmpresa=empresa_id).count()
             stats["horarios"] = Horario.query.count()
             stats["roles"] = Rol.query.count()
-            # Fichajes totales de la empresa
             ids_empleados = [t.id_trabajador for t in Trabajador.query.filter_by(idEmpresa=empresa_id).all()]
             if ids_empleados:
                 stats["fichajes_total"] = Fichaje.query.filter(Fichaje.id_trabajador.in_(ids_empleados)).count()
@@ -397,7 +396,7 @@ def create_app():
         )
         return render_template("incidencias_list.html", incidencias=incidencias)
 
-    # NUEVA RUTA: CREAR INCIDENCIA (PARA EL ADMIN)
+    # CREAR INCIDENCIA (ADMIN)
     @app.route("/incidencias/nueva", methods=["GET", "POST"])
     @admin_required
     def incidencia_nueva():
@@ -416,7 +415,7 @@ def create_app():
                 fecha_inicio=form.fecha_inicio.data,
                 fecha_fin=form.fecha_fin.data,
                 comentario_trabajador=form.comentario.data, # Nota inicial del admin
-                estado='APROBADA', # Nace aprobada al ser creada por el jefe
+                estado='APROBADA', # Nace aprobada
                 comentario_admin="Creada manualmente por Administración."
             )
             
@@ -456,23 +455,156 @@ def create_app():
 
         return render_template("incidencia_resolver.html", form=form, incidencia=incidencia)
 
-    # --- VISUALIZACIÓN DE FICHAJES (HISTORIAL) ---
-
+    # --- VISUALIZACIÓN DE FICHAJES (Agrupado y Limpio) ---
     @app.get("/fichajes")
     @admin_required
     def fichajes_list():
         empresa_id = session.get("empresa_id")
+        
+        # 1. Filtros
+        filtro_empleado = request.args.get('empleado_id', type=int)
+        filtro_fecha = request.args.get('fecha')
 
-        # Filtro básico: Obtener fichajes de empleados de mi empresa
-        fichajes = (
-            Fichaje.query.join(Trabajador)
-            .filter(Trabajador.idEmpresa == empresa_id)
-            .order_by(Fichaje.fecha_hora.desc())
-            .limit(100)
-            .all()
-        )
+        # 2. Query Base
+        query = Fichaje.query.join(Trabajador).filter(Trabajador.idEmpresa == empresa_id)
 
-        return render_template("fichajes_list.html", fichajes=fichajes)
+        if filtro_empleado:
+            query = query.filter(Trabajador.id_trabajador == filtro_empleado)
+        
+        if filtro_fecha:
+            query = query.filter(db.func.date(Fichaje.fecha_hora) == filtro_fecha)
+
+        # 3. Obtener datos (Importante: Orden ascendente para procesar cronológicamente)
+        # Limitamos a 500 para no saturar si no hay filtros
+        fichajes_raw = query.order_by(Fichaje.fecha_hora.asc()).limit(500).all()
+
+        # 4. ALGORITMO DE AGRUPACIÓN
+        jornadas = []
+        pendientes = {} # {id_trabajador: objeto_fichaje_entrada}
+
+        for f in fichajes_raw:
+            emp_id = f.id_trabajador
+            
+            if f.tipo == 'ENTRADA':
+                # Si ya hay una entrada pendiente -> Error Zombie (Entrada sin salida previa)
+                if emp_id in pendientes:
+                    entrada_previa = pendientes[emp_id]
+                    jornadas.append({
+                        'trabajador': entrada_previa.trabajador,
+                        'entrada': entrada_previa,
+                        'salida': None,
+                        'duracion': "Sin cierre",
+                        'status': 'error', # Para CSS
+                        'is_zombie': True, # Flag para icono
+                        'fecha_ref': entrada_previa.fecha_hora
+                    })
+                
+                # Guardamos la nueva entrada
+                pendientes[emp_id] = f
+            
+            elif f.tipo == 'SALIDA':
+                if emp_id in pendientes:
+                    # Cierre de ciclo correcto
+                    entrada = pendientes.pop(emp_id)
+                    delta = f.fecha_hora - entrada.fecha_hora
+                    horas = delta.total_seconds() / 3600
+                    
+                    # Formato legible: "8h 30m"
+                    duracion_txt = f"{int(horas)}h {int((horas*60)%60)}m"
+                    status = 'closed'
+                    is_long = False
+
+                    if horas > 12: # Turno sospechosamente largo
+                        status = 'warning'
+                        is_long = True
+
+                    jornadas.append({
+                        'trabajador': entrada.trabajador,
+                        'entrada': entrada,
+                        'salida': f,
+                        'duracion': duracion_txt,
+                        'status': status,
+                        'is_long': is_long,
+                        'fecha_ref': entrada.fecha_hora
+                    })
+                else:
+                    # Salida huérfana (Sin entrada registrada)
+                    jornadas.append({
+                        'trabajador': f.trabajador,
+                        'entrada': None,
+                        'salida': f,
+                        'duracion': "Registro huérfano",
+                        'status': 'error',
+                        'is_orphan': True,
+                        'fecha_ref': f.fecha_hora
+                    })
+
+        # 5. Procesar los que siguen trabajando (Pendientes al final)
+        for emp_id, entrada in pendientes.items():
+            delta = datetime.now() - entrada.fecha_hora
+            horas = delta.total_seconds() / 3600
+            
+            status = 'active'
+            is_long = False
+            
+            if horas > 16: # Olvido probable (más de 16h abierto)
+                status = 'error'
+                is_long = True
+            
+            jornadas.append({
+                'trabajador': entrada.trabajador,
+                'entrada': entrada,
+                'salida': None,
+                'duracion': f"En curso ({int(horas)}h)",
+                'status': status,
+                'is_active': (status == 'active'),
+                'is_long': is_long,
+                'fecha_ref': entrada.fecha_hora
+            })
+
+        # Ordenar del más reciente al más antiguo para la vista
+        jornadas.sort(key=lambda x: x['fecha_ref'], reverse=True)
+
+        empleados = Trabajador.query.filter_by(idEmpresa=empresa_id).order_by(Trabajador.nombre).all()
+
+        return render_template("fichajes_list.html", 
+                               jornadas=jornadas, 
+                               empleados=empleados,
+                               filtro_empleado=filtro_empleado,
+                               filtro_fecha=filtro_fecha)
+
+    # NUEVA RUTA: FICHAJE MANUAL (ADMIN)
+    @app.route("/fichajes/nuevo", methods=["GET", "POST"])
+    @admin_required
+    def fichaje_nuevo():
+        empresa_id = session.get("empresa_id")
+        empresa = Empresa.query.get(empresa_id)
+        
+        form = FichajeManualForm()
+        # Cargar empleados para el select
+        empleados = Trabajador.query.filter_by(idEmpresa=empresa_id).order_by(Trabajador.nombre).all()
+        form.trabajador_id.choices = [(t.id_trabajador, f"{t.nombre} {t.apellidos}") for t in empleados]
+
+        if form.validate_on_submit():
+            # Al ser manual, usamos la lat/lon de la empresa para que aparezca "en sitio"
+            lat = empresa.latitud if empresa.latitud else 0.0
+            lon = empresa.longitud if empresa.longitud else 0.0
+
+            nuevo_fichaje = Fichaje(
+                id_trabajador=form.trabajador_id.data,
+                tipo=form.tipo.data,
+                fecha_hora=form.fecha_hora.data,
+                latitud=lat,
+                longitud=lon
+            )
+            
+            db.session.add(nuevo_fichaje)
+            db.session.commit()
+            
+            flash("Fichaje manual registrado correctamente.", "success")
+            return redirect(url_for("fichajes_list"))
+
+        return render_template("fichaje_manual.html", form=form)
 
     # --- GESTIÓN DE EMPRESAS (SUPERADMIN) ---
     @app.get("/empresas")

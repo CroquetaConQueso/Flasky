@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Nuevo Fichaje Manual{% endblock %}
+
+{% block css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/fichajes.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 600px;">
+
+    <div class="mb-5">
+        <a href="{{ url_for('fichajes_list') }}" class="btn btn-link text-dark fw-bold px-0">
+            <i class="ph-bold ph-arrow-left"></i> VOLVER AL HISTORIAL
+        </a>
+    </div>
+
+    <div class="sticker-label">
+        Registro Manual de Fichaje
+    </div>
+    
+    <div class="card card-pop pt-4">
+        <div class="card-body p-4">
+            
+            <div class="alert alert-warning border-2 border-dark text-dark fw-bold mb-4">
+                <i class="ph-bold ph-warning-circle me-2"></i>
+                Estás forzando un fichaje manualmente. La ubicación se registrará como "Sede de la Empresa".
+            </div>
+
+            <form method="POST">
+                {{ form.hidden_tag() }}
+                
+                <div class="mb-4">
+                    <label class="form-label">Seleccionar Empleado</label>
+                    {{ form.trabajador_id(class="form-select fw-bold") }}
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label">Tipo de Movimiento</label>
+                    {{ form.tipo(class="form-select") }}
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label">Fecha y Hora Real</label>
+                    {{ form.fecha_hora(class="form-control", type="datetime-local") }}
+                </div>
+
+                <div class="d-grid gap-3">
+                    <button type="submit" class="btn btn-pop btn-pop-success py-3 fs-5">
+                        <i class="ph-bold ph-check-circle"></i> GUARDAR FICHAJE
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
