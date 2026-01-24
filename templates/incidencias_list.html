@@ -8,11 +8,15 @@
 
 {% block content %}
 <div class="container">
-
+    
     <div class="d-flex justify-content-between align-items-center mb-5">
         <h2 class="page-title-box">
             <i class="ph-bold ph-files"></i> Gestión de Incidencias
         </h2>
+        
+        <a href="{{ url_for('incidencia_nueva') }}" class="btn btn-pop btn-pop-primary">
+            <i class="ph-bold ph-plus"></i> NUEVA INCIDENCIA
+        </a>
     </div>
 
     {% if not incidencias %}
@@ -27,7 +31,7 @@
             <div class="col-12 mb-4">
                 <div class="card card-pop ticket-card">
                     <div class="card-body p-4 d-flex flex-wrap align-items-center justify-content-between gap-4">
-
+                        
                         <div class="d-flex align-items-center gap-3" style="min-width: 200px;">
                             <div class="bg-black text-white p-3 rounded-circle">
                                 {% if i.tipo == 'VACACIONES' %}<i class="ph-bold ph-airplane-tilt fs-4"></i>
@@ -68,10 +72,10 @@
                         </div>
 
                     </div>
-
+                    
                     {% if i.comentario_trabajador %}
                     <div class="card-footer bg-light border-top-2 border-dark">
-                        <i class="ph-bold ph-chat-circle-text me-2"></i>
+                        <i class="ph-bold ph-chat-circle-text me-2"></i> 
                         <span class="fst-italic fw-bold">"{{ i.comentario_trabajador }}"</span>
                     </div>
                     {% endif %}

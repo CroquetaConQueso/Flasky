@@ -7,10 +7,11 @@ from wtforms import (
     TelField,
     FloatField,
     IntegerField,
-    TextAreaField
+    TextAreaField,
+    DateField  # Importante: DateField añadido
 )
 from wtforms.fields import TimeField
-from wtforms.validators import DataRequired, Length, Email, Optional # <--- Email restaurado
+from wtforms.validators import DataRequired, Length, Email, Optional
 
 # 1. LOGIN
 class LoginForm(FlaskForm):
@@ -73,7 +74,7 @@ class FranjaForm(FlaskForm):
     )
     submit = SubmitField("Añadir franja")
 
-# 7. INCIDENCIAS (NUEVO)
+# 7. INCIDENCIAS (ADMIN RESOLVER)
 class IncidenciaAdminForm(FlaskForm):
     estado = SelectField("Resolución", choices=[
         ('PENDIENTE', 'Pendiente'),
@@ -84,3 +85,23 @@ class IncidenciaAdminForm(FlaskForm):
     comentario_admin = TextAreaField("Motivo / Respuesta", validators=[Length(max=500)])
     
     submit = SubmitField("Guardar Resolución")
+
+# 8. INCIDENCIAS (ADMIN CREAR NUEVA) - ¡NUEVO!
+class IncidenciaCrearForm(FlaskForm):
+    trabajador_id = SelectField("Empleado", coerce=int, validators=[DataRequired()])
+    
+    tipo = SelectField("Tipo de Incidencia", choices=[
+        ('VACACIONES', 'Vacaciones'),
+        ('BAJA', 'Baja Médica'),
+        ('ASUNTOS_PROPIOS', 'Asuntos Propios'),
+        ('OLVIDO', 'Olvido de Fichaje'),
+        ('HORAS_EXTRA', 'Horas Extra (Compensación)')
+    ], validators=[DataRequired()])
+    
+    # DateField requiere el formato YYYY-MM-DD del input HTML date
+    fecha_inicio = DateField("Fecha Inicio", format='%Y-%m-%d', validators=[DataRequired()])
+    fecha_fin = DateField("Fecha Fin", format='%Y-%m-%d', validators=[DataRequired()])
+    
+    comentario = TextAreaField("Observaciones", validators=[Length(max=500)])
+    
+    submit = SubmitField("Registrar Incidencia")

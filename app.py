@@ -1,5 +1,5 @@
 from functools import wraps
-from datetime import datetime  # IMPORTANTE: Necesario para gestionar las horas
+from datetime import datetime
 
 from flask import Flask, render_template, redirect, url_for, flash, session, request
 from sqlalchemy.exc import OperationalError
@@ -7,7 +7,7 @@ from werkzeug.security import generate_password_hash
 
 from config import Config
 from extensions import db, migrate, jwt, api
-from models import Trabajador, Empresa, Rol, Horario, Dia, Franja
+from models import Trabajador, Empresa, Rol, Horario, Dia, Franja, Incidencia, Fichaje
 from forms import (
     LoginForm,
     EmpresaForm,
@@ -15,6 +15,8 @@ from forms import (
     TrabajadorForm,
     HorarioForm,
     FranjaForm,
+    IncidenciaAdminForm,
+    IncidenciaCrearForm  # <--- IMPORTANTE: Nuevo form
 )
 from resources.auth import blp as AuthBlueprint
 from resources.empresa import blp as EmpresaBlueprint
@@ -235,7 +237,6 @@ def create_app():
     @admin_required
     def empleado_edit(emp_id):
         empresa_id = session.get("empresa_id")
-        # Usamos 'empleado' consistentemente para evitar errores de nombres
         empleado = Trabajador.query.get_or_404(emp_id)
 
         if empleado.idEmpresa != empresa_id:
@@ -251,7 +252,6 @@ def create_app():
             form.horario_id.data = empleado.idHorario
 
         if form.validate_on_submit():
-            # Actualizamos campos manualmente
             empleado.nif = form.nif.data
             empleado.nombre = form.nombre.data
             empleado.apellidos = form.apellidos.data
@@ -325,16 +325,13 @@ def create_app():
             flash("Horario eliminado.", "success")
         return redirect(url_for("horarios_list"))
 
-    # --- GESTIÓN AVANZADA DE FRANJAS ---
-
     @app.route("/horarios/<int:horario_id>/franjas", methods=["GET", "POST"])
     @admin_required
     def horario_franjas(horario_id):
         horario = Horario.query.get_or_404(horario_id)
 
-        # LOGICA POST: Añadir nueva franja
         if request.method == "POST":
-            # Si el POST viene por error del formulario de días, redirigimos
+            # Redirección si se usan los checkboxes de días aquí por error
             if "lunes" in request.form or "martes" in request.form:
                  return redirect(url_for("horario_franjas", horario_id=horario_id))
 
@@ -345,7 +342,7 @@ def create_app():
                 try:
                     nueva = Franja(
                         id_horario=horario_id,
-                        id_dia=1, # Se asigna genérico, ya que usamos días globales
+                        id_dia=1, 
                         hora_entrada=datetime.strptime(h_inicio, "%H:%M").time(),
                         hora_salida=datetime.strptime(h_fin, "%H:%M").time()
                     )
@@ -357,11 +354,9 @@ def create_app():
 
             return redirect(url_for("horario_franjas", horario_id=horario_id))
 
-        # LOGICA GET: Mostrar
         franjas = Franja.query.filter_by(id_horario=horario_id).order_by(Franja.hora_entrada).all()
         return render_template("horario_franjas.html", horario=horario, franjas=franjas)
 
-    # NUEVA RUTA: Actualizar los días laborables (Interruptores)
     @app.post("/horarios/<int:horario_id>/dias")
     @admin_required
     def horario_update_dias(horario_id):
@@ -378,7 +373,6 @@ def create_app():
         flash("Días laborables actualizados.", "success")
         return redirect(url_for("horario_franjas", horario_id=horario_id))
 
-    # NUEVA RUTA: Eliminar Franja (Botón papelera)
     @app.post("/franjas/delete/<int:franja_id>")
     @admin_required
     def franja_delete(franja_id):
@@ -389,43 +383,7 @@ def create_app():
         flash("Franja eliminada.", "success")
         return redirect(url_for("horario_franjas", horario_id=h_id))
 
-    # --- GESTIÓN DE EMPRESAS (SUPERADMIN) ---
-    @app.get("/empresas")
-    @admin_required
-    def empresas_list():
-        return render_template("empresas_list.html", empresas=Empresa.query.all())
-
-    @app.route("/empresas/nueva", methods=["GET", "POST"])
-    @admin_required
-    def empresa_new():
-        form = EmpresaForm()
-        if form.validate_on_submit():
-            empresa = Empresa(
-                nombrecomercial=form.nombrecomercial.data,
-                cif=form.cif.data,
-                latitud=form.latitud.data, longitud=form.longitud.data, radio=form.radio.data
-            )
-            db.session.add(empresa)
-            db.session.commit()
-            flash("Empresa creada.", "success")
-            return redirect(url_for("empresas_list"))
-        return render_template("empresa_form.html", form=form, titulo="Nueva Empresa")
-
-    @app.post("/empresas/<int:empresa_id>/eliminar")
-    @admin_required
-    def empresa_delete(empresa_id):
-        empresa = Empresa.query.get_or_404(empresa_id)
-        if empresa.trabajadores:
-            flash("No se puede eliminar, tiene empleados.", "danger")
-        else:
-            db.session.delete(empresa)
-            db.session.commit()
-            flash("Empresa eliminada.", "success")
-        return redirect(url_for("empresas_list"))
-
-    return app
-
-    # --- GESTIÓN DE INCIDENCIAS (NUEVO) ---
+    # --- GESTIÓN DE INCIDENCIAS ---
 
     @app.get("/incidencias")
     @admin_required
@@ -438,6 +396,37 @@ def create_app():
             .all()
         )
         return render_template("incidencias_list.html", incidencias=incidencias)
+
+    # NUEVA RUTA: CREAR INCIDENCIA (PARA EL ADMIN)
+    @app.route("/incidencias/nueva", methods=["GET", "POST"])
+    @admin_required
+    def incidencia_nueva():
+        empresa_id = session.get("empresa_id")
+        form = IncidenciaCrearForm()
+        
+        # Cargar el selector de empleados SOLO con los de mi empresa
+        empleados = Trabajador.query.filter_by(idEmpresa=empresa_id).order_by(Trabajador.nombre).all()
+        form.trabajador_id.choices = [(t.id_trabajador, f"{t.nombre} {t.apellidos}") for t in empleados]
+
+        if form.validate_on_submit():
+            # Crear la incidencia
+            nueva_incidencia = Incidencia(
+                id_trabajador=form.trabajador_id.data,
+                tipo=form.tipo.data,
+                fecha_inicio=form.fecha_inicio.data,
+                fecha_fin=form.fecha_fin.data,
+                comentario_trabajador=form.comentario.data, # Nota inicial del admin
+                estado='APROBADA', # Nace aprobada al ser creada por el jefe
+                comentario_admin="Creada manualmente por Administración."
+            )
+            
+            db.session.add(nueva_incidencia)
+            db.session.commit()
+            
+            flash("Incidencia creada y aprobada correctamente.", "success")
+            return redirect(url_for("incidencias_list"))
+
+        return render_template("incidencia_crear.html", form=form)
 
     @app.route("/incidencias/<int:incidencia_id>/resolver", methods=["GET", "POST"])
     @admin_required
@@ -475,15 +464,50 @@ def create_app():
         empresa_id = session.get("empresa_id")
 
         # Filtro básico: Obtener fichajes de empleados de mi empresa
-        # Ordenados: El más reciente primero
         fichajes = (
             Fichaje.query.join(Trabajador)
             .filter(Trabajador.idEmpresa == empresa_id)
             .order_by(Fichaje.fecha_hora.desc())
-            .limit(100) # Limitamos a los últimos 100 para no saturar la vista inicial
+            .limit(100)
             .all()
         )
 
         return render_template("fichajes_list.html", fichajes=fichajes)
+
+    # --- GESTIÓN DE EMPRESAS (SUPERADMIN) ---
+    @app.get("/empresas")
+    @admin_required
+    def empresas_list():
+        return render_template("empresas_list.html", empresas=Empresa.query.all())
+
+    @app.route("/empresas/nueva", methods=["GET", "POST"])
+    @admin_required
+    def empresa_new():
+        form = EmpresaForm()
+        if form.validate_on_submit():
+            empresa = Empresa(
+                nombrecomercial=form.nombrecomercial.data,
+                cif=form.cif.data,
+                latitud=form.latitud.data, longitud=form.longitud.data, radio=form.radio.data
+            )
+            db.session.add(empresa)
+            db.session.commit()
+            flash("Empresa creada.", "success")
+            return redirect(url_for("empresas_list"))
+        return render_template("empresa_form.html", form=form, titulo="Nueva Empresa")
+
+    @app.post("/empresas/<int:empresa_id>/eliminar")
+    @admin_required
+    def empresa_delete(empresa_id):
+        empresa = Empresa.query.get_or_404(empresa_id)
+        if empresa.trabajadores:
+            flash("No se puede eliminar, tiene empleados.", "danger")
+        else:
+            db.session.delete(empresa)
+            db.session.commit()
+            flash("Empresa eliminada.", "success")
+        return redirect(url_for("empresas_list"))
+
+    return app
 
 app = create_app()
