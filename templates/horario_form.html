@@ -2,33 +2,73 @@
 
 {% block title %}{{ titulo }}{% endblock %}
 
+{% block css %}
+<style>
+    /* Estilo local para la etiqueta inclinada */
+    .sticker-label {
+        background: #ffde59; /* Amarillo Pop */
+        border: 3px solid #000;
+        padding: 6px 18px;
+        font-weight: 900;
+        display: inline-block;
+        transform: rotate(-2deg);
+        margin-bottom: -15px;
+        position: relative;
+        z-index: 5;
+        box-shadow: 4px 4px 0px #000;
+        text-transform: uppercase;
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<h1 class="h4 mb-4">{{ titulo }}</h1>
+<div class="container" style="max-width: 700px;">
 
-<div class="row justify-content-center">
-  <div class="col-md-6">
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <form method="post">
-          {{ form.hidden_tag() }}
-
-          <div class="mb-3">
-            {{ form.nombre_horario.label(class="form-label") }}
-            {{ form.nombre_horario(class="form-control") }}
-          </div>
-
-          <div class="mb-3">
-            {{ form.descripcion.label(class="form-label") }}
-            {{ form.descripcion(class="form-control") }}
-          </div>
-
-          {{ form.submit(class="btn btn-primary") }}
-          <a href="{{ url_for('horarios_list') }}" class="btn btn-secondary ms-2">
-            Cancelar
-          </a>
-        </form>
-      </div>
+    <div class="mb-5">
+        <a href="{{ url_for('horarios_list') }}" class="btn btn-link text-dark fw-bold px-0">
+            <i class="ph-bold ph-arrow-left"></i> VOLVER A HORARIOS
+        </a>
     </div>
-  </div>
+
+    <div class="sticker-label">
+        {{ titulo }}
+    </div>
+
+    <div class="card card-pop pt-4">
+        <div class="card-body p-4">
+            
+            <div class="alert mb-4" style="background-color: #a9def9; border: 3px solid #000; color: #000;">
+                <i class="ph-bold ph-info me-2"></i> 
+                <strong>Nota:</strong> Aquí defines el nombre general (ej: "Turno Mañana"). Las horas exactas se configuran en el botón <b>"Franjas"</b> del listado.
+            </div>
+
+            <form method="post">
+                {{ form.hidden_tag() }}
+
+                <div class="mb-4">
+                    <label class="form-label">Nombre del Horario</label>
+                    {{ form.nombre_horario(class="form-control", placeholder="Ej: General, Turno Noche...") }}
+                    {% for error in form.nombre_horario.errors %}
+                        <div class="text-danger fw-bold small mt-1">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label">Descripción (Opcional)</label>
+                    {{ form.descripcion(class="form-control", rows="2", placeholder="Breve descripción del turno...") }}
+                </div>
+
+                <div class="d-grid gap-3 mt-4">
+                    <button type="submit" class="btn btn-pop btn-pop-success py-3 fs-5">
+                        <i class="ph-bold ph-floppy-disk"></i> GUARDAR HORARIO
+                    </button>
+                    <a href="{{ url_for('horarios_list') }}" class="btn btn-pop btn-pop-danger">
+                        CANCELAR
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 {% endblock %}

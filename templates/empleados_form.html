@@ -2,65 +2,102 @@
 
 {% block title %}{{ titulo }}{% endblock %}
 
+{% block css %}
+<style>
+    /* Estilo Sticker para el título */
+    .sticker-label {
+        background: #ffde59;
+        border: 3px solid #000;
+        padding: 6px 18px;
+        font-weight: 900;
+        display: inline-block;
+        transform: rotate(-2deg);
+        margin-bottom: -15px;
+        position: relative;
+        z-index: 5;
+        box-shadow: 4px 4px 0px #000;
+        text-transform: uppercase;
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<h1 class="h4 mb-4">{{ titulo }}</h1>
+<div class="container" style="max-width: 800px;">
 
-<div class="row justify-content-center">
-  <div class="col-md-6">
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <form method="post">
-          {{ form.hidden_tag() }}
-
-          <div class="mb-3">
-            {{ form.nif.label(class="form-label") }}
-            {{ form.nif(class="form-control") }}
-          </div>
-
-          <div class="mb-3">
-            {{ form.nombre.label(class="form-label") }}
-            {{ form.nombre(class="form-control") }}
-          </div>
-
-          <div class="mb-3">
-            {{ form.apellidos.label(class="form-label") }}
-            {{ form.apellidos(class="form-control") }}
-          </div>
-
-          <div class="mb-3">
-            {{ form.passw.label(class="form-label") }}
-            {{ form.passw(class="form-control") }}
-          </div>
-
-          <div class="mb-3">
-            {{ form.email.label(class="form-label") }}
-            {{ form.email(class="form-control") }}
-          </div>
-
-          <div class="mb-3">
-            {{ form.telef.label(class="form-label") }}
-            {{ form.telef(class="form-control") }}
-          </div>
-
-          <div class="mb-3">
-            {{ form.rol_id.label(class="form-label") }}
-            {{ form.rol_id(class="form-select") }}
-          </div>
-
-          <div class="mb-3">
-            {{ form.horario_id.label(class="form-label") }}
-            {{ form.horario_id(class="form-select") }}
-          </div>
-
-          <div class="d-flex justify-content-between">
-            <a href="{{ url_for('empleados_list') }}" class="btn btn-outline-secondary">
-              Volver
-            </a>
-            {{ form.submit(class="btn btn-primary") }}
-          </div>
-        </form>
-      </div>
+    <div class="mb-5">
+        <a href="{{ url_for('empleados_list') }}" class="btn btn-link text-dark fw-bold px-0">
+            <i class="ph-bold ph-arrow-left"></i> VOLVER AL LISTADO
+        </a>
     </div>
-  </div>
+
+    <div class="sticker-label">
+        {{ titulo }}
+    </div>
+
+    <div class="card card-pop pt-4">
+        <div class="card-body p-4">
+            
+            <form method="POST">
+                {{ form.hidden_tag() }}
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Nombre</label>
+                        {{ form.nombre(class="form-control") }}
+                        {% for error in form.nombre.errors %}
+                            <div class="text-danger fw-bold small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Apellidos</label>
+                        {{ form.apellidos(class="form-control") }}
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">NIF / DNI</label>
+                        {{ form.nif(class="form-control") }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Email</label>
+                        {{ form.email(class="form-control") }}
+                    </div>
+                    
+                    <div class="col-md-6">
+                         <label class="form-label">Teléfono</label>
+                         {{ form.telef(class="form-control") }}
+                    </div>
+
+                    <div class="col-md-12">
+                        <label class="form-label">Contraseña</label>
+                        {{ form.passw(class="form-control", placeholder="Dejar en blanco para mantener la actual" if not is_new else "Contraseña obligatoria") }}
+                        {% for error in form.passw.errors %}
+                            <div class="text-danger fw-bold small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <hr class="my-4" style="border-top: 3px solid #000; opacity: 1;">
+
+                    <div class="col-md-6">
+                        <label class="form-label">Rol de Usuario</label>
+                        {{ form.rol_id(class="form-select") }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Horario Asignado</label>
+                        {{ form.horario_id(class="form-select") }}
+                    </div>
+                </div>
+
+                <div class="d-grid mt-4 gap-3">
+                    <button type="submit" class="btn btn-pop btn-pop-success py-3 fs-5">
+                        <i class="ph-bold ph-floppy-disk"></i> GUARDAR EMPLEADO
+                    </button>
+                     <a href="{{ url_for('empleados_list') }}" class="btn btn-pop btn-pop-danger">
+                        CANCELAR
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 {% endblock %}

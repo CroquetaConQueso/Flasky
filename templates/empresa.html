@@ -2,92 +2,124 @@
 
 {% block title %}Configuración de Empresa{% endblock %}
 
-{% block content %}
-
+{% block css %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
      crossorigin=""/>
+<style>
+    /* El mapa con estilo Neo-Brutalism */
+    #map { 
+        height: 500px; 
+        width: 100%; 
+        border: 4px solid #000; 
+        border-radius: 15px; 
+        box-shadow: 8px 8px 0px #000; 
+    }
+    
+    /* Etiqueta flotante estilo pegatina */
+    .sticker-label {
+        background: #ffde59;
+        border: 3px solid #000;
+        padding: 6px 18px;
+        font-weight: 900;
+        display: inline-block;
+        transform: rotate(-2deg);
+        margin-bottom: -15px;
+        position: relative;
+        z-index: 5;
+        box-shadow: 4px 4px 0px #000;
+        text-transform: uppercase;
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}
 
+{% block content %}
 <div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">🏢 Datos de la Empresa</h4>
+    <div class="mb-5">
+        <h2 class="page-title-box">
+            <i class="ph-bold ph-buildings"></i> Configuración de Sede
+        </h2>
+    </div>
+
+    <form method="POST">
+        {{ form.hidden_tag() }}
+
+        <div class="row g-5">
+            <div class="col-lg-5">
+                <div class="sticker-label">Información General</div>
+                <div class="card card-pop pt-4">
+                    <div class="card-body p-4">
+                        <div class="mb-4">
+                            <label class="form-label">Nombre Comercial</label>
+                            {{ form.nombrecomercial(class="form-control", placeholder="Nombre de la empresa") }}
+                            {% for error in form.nombrecomercial.errors %}
+                                <div class="text-danger fw-bold small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">CIF / Identificador</label>
+                            {{ form.cif(class="form-control", placeholder="CIF") }}
+                            {% for error in form.cif.errors %}
+                                <div class="text-danger fw-bold small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label text-danger">Radio de Fichaje (Metros)</label>
+                            <div class="input-group" style="border: 3px solid #000; border-radius: 12px; overflow: hidden;">
+                                {{ form.radio(class="form-control border-0", id="radio", type="number") }}
+                                <span class="input-group-text bg-dark text-white border-0 fw-bold">MTS</span>
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mt-2">
+                            <div class="col-6">
+                                <label class="form-label small">Latitud</label>
+                                {{ form.latitud(class="form-control bg-light", id="latitud", readonly=True) }}
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small">Longitud</label>
+                                {{ form.longitud(class="form-control bg-light", id="longitud", readonly=True) }}
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <form method="POST">
-                        {{ form.hidden_tag() }}
 
-                        <h5 class="mb-3 text-muted border-bottom pb-2">Información General</h5>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                {{ form.nombrecomercial.label(class="form-label fw-bold") }}
-                                {{ form.nombrecomercial(class="form-control", placeholder="Ej: Mi Empresa S.L.") }}
-                                {% for error in form.nombrecomercial.errors %}
-                                    <div class="text-danger small">{{ error }}</div>
-                                {% endfor %}
-                            </div>
-                            <div class="col-md-6">
-                                {{ form.cif.label(class="form-label fw-bold") }}
-                                {{ form.cif(class="form-control", placeholder="Ej: B12345678") }}
-                                {% for error in form.cif.errors %}
-                                    <div class="text-danger small">{{ error }}</div>
-                                {% endfor %}
-                            </div>
-                        </div>
+                <div class="d-grid gap-3 mt-4">
+                    <button type="submit" class="btn btn-pop btn-pop-success py-3 fs-5">
+                        <i class="ph-bold ph-check-circle"></i> GUARDAR CAMBIOS
+                    </button>
+                    <a href="{{ url_for('panel') }}" class="btn btn-pop btn-pop-danger">
+                        CANCELAR
+                    </a>
+                </div>
+            </div>
 
-                        <h5 class="mb-3 text-muted border-bottom pb-2 mt-4">
-                            📍 Ubicación y Control de Presencia
-                        </h5>
-                        <p class="small text-muted">
-                            Haz clic en el mapa para establecer la ubicación de la empresa. El círculo rojo indica el área permitida para fichar.
-                        </p>
-
-                        <div id="map" style="height: 400px; width: 100%; border-radius: 8px; border: 2px solid #ddd;" class="mb-3"></div>
-
-                        <div class="row mb-3">
-                            <div class="col-md-4">
-                                {{ form.latitud.label(class="form-label fw-bold") }}
-                                {{ form.latitud(class="form-control", id="latitud", readonly=True) }}
-                            </div>
-                            <div class="col-md-4">
-                                {{ form.longitud.label(class="form-label fw-bold") }}
-                                {{ form.longitud(class="form-control", id="longitud", readonly=True) }}
-                            </div>
-                            <div class="col-md-4">
-                                {{ form.radio.label(class="form-label fw-bold") }}
-                                <div class="input-group">
-                                    {{ form.radio(class="form-control", id="radio", type="number") }}
-                                    <span class="input-group-text">m</span>
-                                </div>
-                                <small class="text-muted">Radio permitido en metros</small>
-                            </div>
-                        </div>
-
-                        <div class="d-grid gap-2 mt-4">
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                💾 Guardar Cambios
-                            </button>
-                            <a href="{{ url_for('panel') }}" class="btn btn-outline-secondary">
-                                Cancelar
-                            </a>
-                        </div>
-                    </form>
+            <div class="col-lg-7">
+                <div class="sticker-label" style="background: #a9def9;">Ubicación GPS</div>
+                <div class="card card-pop pt-4">
+                    <div class="card-body p-2">
+                        <div id="map"></div>
+                    </div>
+                </div>
+                <div class="alert alert-dark border-3 border-dark mt-3 fw-bold small shadow-sm">
+                    <i class="ph-bold ph-info"></i> Haz clic en el mapa o arrastra el PIN para definir el centro de la sede.
                 </div>
             </div>
         </div>
-    </div>
+    </form>
 </div>
+{% endblock %}
 
+{% block scripts %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
      crossorigin=""></script>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Obtenemos los valores actuales de los inputs (si existen)
-        // Si no hay valor, usamos una coordenada por defecto (Madrid - Puerta del Sol)
         var latInput = document.getElementById('latitud');
         var lngInput = document.getElementById('longitud');
         var radInput = document.getElementById('radio');
@@ -96,37 +128,30 @@
         var currentLng = parseFloat(lngInput.value) || -3.7032;
         var currentRad = parseFloat(radInput.value) || 100;
 
-        // Inicializar el mapa
         var map = L.map('map').setView([currentLat, currentLng], 16);
 
-        // Añadir capa de OpenStreetMap
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
-            attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            attribution: '&copy; OpenStreetMap'
         }).addTo(map);
 
-        // Variables para marcador y círculo
         var marker;
         var circle;
 
-        // Función para actualizar o crear los elementos visuales
         function updateMapElements(lat, lng, rad) {
-            // Si ya existen, los quitamos para poner los nuevos
             if (marker) map.removeLayer(marker);
             if (circle) map.removeLayer(circle);
 
-            // Crear marcador
             marker = L.marker([lat, lng], {draggable: true}).addTo(map);
             
-            // Crear círculo de radio
             circle = L.circle([lat, lng], {
-                color: 'red',
-                fillColor: '#f03',
-                fillOpacity: 0.2,
+                color: '#000',      
+                fillColor: '#ff4d6d', 
+                fillOpacity: 0.3,
+                weight: 3,
                 radius: rad
             }).addTo(map);
 
-            // Evento: Si arrastran el marcador, actualizamos inputs y círculo
             marker.on('dragend', function(event) {
                 var position = marker.getLatLng();
                 updateInputs(position.lat, position.lng);
@@ -134,22 +159,18 @@
             });
         }
 
-        // Función para actualizar las cajas de texto
         function updateInputs(lat, lng) {
             latInput.value = lat.toFixed(6);
             lngInput.value = lng.toFixed(6);
         }
 
-        // Dibujar estado inicial
         updateMapElements(currentLat, currentLng, currentRad);
 
-        // Evento: CLIC EN EL MAPA
         map.on('click', function(e) {
             updateInputs(e.latlng.lat, e.latlng.lng);
             updateMapElements(e.latlng.lat, e.latlng.lng, parseFloat(radInput.value) || 100);
         });
 
-        // Evento: CAMBIO EN EL RADIO (input manual)
         radInput.addEventListener('input', function() {
             var newRad = parseFloat(this.value) || 0;
             if (circle) {
@@ -158,5 +179,4 @@
         });
     });
 </script>
-
 {% endblock %}

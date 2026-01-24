@@ -1,107 +1,111 @@
-/* static/css/login.css - EDICIÓN DARK RED */
+/* static/css/login.css - ESTILO NEO-BRUTALISM POP */
 
-/* Fondo: Negro casi puro */
 body {
-    background-color: #121212;
-    background-image: radial-gradient(circle at 50% 50%, #2d1b1b 0%, #000000 100%);
+    background-color: #e4c1f9; /* Lila Pop */
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #e0e0e0;
+    font-family: 'Verdana', sans-serif;
+    padding: 20px;
 }
 
-/* La tarjeta del formulario: Gris oscuro */
+/* La tarjeta del login estilo "Caja de Cartón" */
 .login-card {
-    background: #1E1E1E; /* Gris oscuro material */
-    border: 1px solid #333;
-    border-radius: 20px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6); /* Sombra negra fuerte */
-    padding: 2.5rem;
+    background: #ffffff;
+    border: 4px solid #000000;
+    border-radius: 16px;
+    box-shadow: 10px 10px 0px #000000; /* Sombra dura negra */
+    padding: 3rem;
     width: 100%;
     max-width: 450px;
-    transition: transform 0.3s ease;
+    position: relative;
 }
 
-.login-card:hover {
-    transform: translateY(-5px);
-    border-color: #FF4B2B; /* Borde rojo sutil al pasar ratón */
-}
-
-/* El título / Icono */
+/* Título estilo etiqueta */
 .login-header {
     text-align: center;
-    margin-bottom: 2rem;
+    margin-bottom: 2.5rem;
 }
 
-.login-icon {
-    font-size: 3rem;
-    background: -webkit-linear-gradient(#FF416C, #FF4B2B); /* Degradado Rojo-Naranja */
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+.login-badge {
+    background-color: #ffde59; /* Amarillo */
+    border: 3px solid #000;
+    display: inline-block;
+    padding: 10px 20px;
+    font-weight: 900;
+    text-transform: uppercase;
+    transform: rotate(-3deg);
+    box-shadow: 4px 4px 0px #000;
     margin-bottom: 1rem;
-    filter: drop-shadow(0 0 10px rgba(255, 65, 108, 0.5)); /* Resplandor rojo */
-}
-
-.login-title {
-    font-weight: 800;
-    color: #ffffff;
-    margin-bottom: 0.5rem;
 }
 
 .login-subtitle {
-    color: #a0aec0;
-    font-size: 0.9rem;
-}
-
-/* Inputs personalizados oscuros */
-.form-floating > .form-control {
-    background-color: #2d2d2d;
-    border: 2px solid #333;
-    color: white;
-    border-radius: 12px;
-    padding-left: 1rem;
-}
-
-.form-floating > .form-control:focus {
-    background-color: #333;
-    border-color: #FF4B2B;
-    box-shadow: 0 0 0 4px rgba(255, 75, 43, 0.2);
-    color: white;
-}
-
-.form-floating > label {
-    padding-left: 1rem;
-    color: #888;
-}
-
-/* El botón de entrar: FUEGO */
-.btn-login {
-    background: linear-gradient(to right, #FF416C, #FF4B2B);
-    border: none;
-    border-radius: 12px;
-    padding: 12px;
+    display: block;
     font-weight: 700;
-    color: white;
-    letter-spacing: 1px;
+    color: #000;
     text-transform: uppercase;
-    font-size: 0.9rem;
-    margin-top: 1.5rem;
-    box-shadow: 0 4px 15px rgba(255, 75, 43, 0.4);
-    transition: all 0.3s ease;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+}
+
+/* Inputs Pop */
+.form-label {
+    font-weight: 800;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    color: #000;
+}
+
+.form-control, .form-select {
+    border: 3px solid #000 !important;
+    border-radius: 10px;
+    padding: 12px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.form-control:focus, .form-select:focus {
+    box-shadow: 5px 5px 0px #000;
+    transform: translate(-2px, -2px);
+    background-color: #fff9f0;
+}
+
+/* Botón de Acceso (Verde Neón) */
+.btn-login {
+    background-color: #00ff9d;
+    color: #000;
+    border: 3px solid #000;
+    border-radius: 10px;
+    padding: 15px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 6px 6px 0px #000;
+    transition: all 0.2s;
+    margin-top: 1rem;
 }
 
 .btn-login:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(255, 75, 43, 0.6);
-    background: linear-gradient(to right, #ff2e63, #ff6b35);
+    transform: translate(-3px, -3px);
+    box-shadow: 9px 9px 0px #000;
+    background-color: #00ff9d;
+    color: #000;
 }
 
-/* Select de Empresa */
-.form-select {
-    background-color: #2d2d2d;
-    color: white;
-    border-radius: 12px;
-    border: 2px solid #333;
-    padding: 1rem;
+.btn-login:active {
+    transform: translate(2px, 2px);
+    box-shadow: 0px 0px 0px #000;
+}
+
+/* Estilo para los errores */
+.text-danger {
+    font-weight: 700;
+    font-size: 0.8rem;
+    background: #ff4d6d;
+    color: white !important;
+    display: inline-block;
+    padding: 2px 8px;
+    border: 2px solid #000;
+    margin-top: 5px;
 }

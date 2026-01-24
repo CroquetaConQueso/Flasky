@@ -9,8 +9,9 @@ from wtforms import (
     IntegerField
 )
 from wtforms.fields import TimeField
-from wtforms.validators import DataRequired, Length, Email
+from wtforms.validators import DataRequired, Length, Optional
 
+# Eliminamos 'Email' de los imports y validadores para evitar errores de librerías
 
 class LoginForm(FlaskForm):
     nif = StringField("NIF", validators=[DataRequired(), Length(max=20)])
@@ -41,8 +42,13 @@ class TrabajadorForm(FlaskForm):
     nif = StringField("NIF", validators=[DataRequired(), Length(max=20)])
     nombre = StringField("Nombre", validators=[DataRequired(), Length(max=80)])
     apellidos = StringField("Apellidos", validators=[DataRequired(), Length(max=120)])
-    passw = PasswordField("Contraseña", validators=[DataRequired(), Length(max=255)])
-    email = StringField("Email", validators=[DataRequired(), Email(), Length(max=120)])
+    
+    # IMPORTANTE: Se llama 'passw' para coincidir con la BBDD
+    passw = PasswordField("Contraseña", validators=[Optional(), Length(max=255)])
+    
+    # Quitamos validación estricta de email para evitar error 500 si falta la librería
+    email = StringField("Email", validators=[DataRequired(), Length(max=120)])
+    
     telef = TelField("Teléfono")
     rol_id = SelectField("Rol", coerce=int, validators=[DataRequired()])
     horario_id = SelectField("Horario", coerce=int, validators=[DataRequired()])

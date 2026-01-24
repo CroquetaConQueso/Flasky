@@ -2,7 +2,6 @@ from datetime import datetime
 from extensions import db
 from werkzeug.security import generate_password_hash, check_password_hash
 
-
 class Empresa(db.Model):
     __tablename__ = "empresa"
 
@@ -82,6 +81,8 @@ class Trabajador(db.Model):
     
     # Relación con fichajes
     fichajes = db.relationship("Fichaje", back_populates="trabajador", cascade="all, delete-orphan")
+    # NUEVO: Relación con incidencias
+    incidencias = db.relationship("Incidencia", back_populates="trabajador", cascade="all, delete-orphan")
 
     def set_password(self, password):
         self.passw = generate_password_hash(password)
@@ -90,7 +91,6 @@ class Trabajador(db.Model):
         return check_password_hash(self.passw, password)
 
 
-# NUEVA CLASE PARA FICHAJES
 class Fichaje(db.Model):
     __tablename__ = "fichaje"
 
@@ -102,3 +102,24 @@ class Fichaje(db.Model):
     
     id_trabajador = db.Column(db.Integer, db.ForeignKey("trabajador.id_trabajador"), nullable=False)
     trabajador = db.relationship("Trabajador", back_populates="fichajes")
+
+
+# NUEVA TABLA: INCIDENCIAS (Vacaciones, Bajas, etc.)
+class Incidencia(db.Model):
+    __tablename__ = "incidencia"
+
+    id_incidencia = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    
+    # Datos de la solicitud
+    tipo = db.Column(db.String(50), nullable=False) # VACACIONES, BAJA, OLVIDO, ASUNTOS_PROPIOS
+    fecha_solicitud = db.Column(db.DateTime, default=datetime.now)
+    fecha_inicio = db.Column(db.Date, nullable=False) # Día que empieza
+    fecha_fin = db.Column(db.Date, nullable=False)    # Día que termina
+    comentario_trabajador = db.Column(db.Text, nullable=True)
+    
+    # Resolución Admin
+    estado = db.Column(db.String(20), default='PENDIENTE') # PENDIENTE, APROBADA, RECHAZADA
+    comentario_admin = db.Column(db.Text, nullable=True) # Motivo del rechazo o nota
+    
+    id_trabajador = db.Column(db.Integer, db.ForeignKey("trabajador.id_trabajador"), nullable=False)
+    trabajador = db.relationship("Trabajador", back_populates="incidencias")

@@ -1,36 +1,69 @@
 {% extends "base.html" %}
 
-{% block title %}Acceso administradores{% endblock %}
+{% block title %}Entrar - RRHH Flask{% endblock %}
+
+{% block css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-  <div class="col-md-6">
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <h1 class="h4 mb-3">Acceso administradores</h1>
-
-        <form method="post">
-          {{ form.hidden_tag() }}
-
-          <div class="mb-3">
-            {{ form.nif.label(class="form-label") }}
-            {{ form.nif(class="form-control") }}
-          </div>
-
-          <div class="mb-3">
-            {{ form.password.label(class="form-label") }}
-            {{ form.password(class="form-control") }}
-          </div>
-
-          <div class="mb-3">
-            {{ form.empresa_id.label(class="form-label") }}
-            {{ form.empresa_id(class="form-select") }}
-          </div>
-
-          {{ form.submit(class="btn btn-primary") }}
-        </form>
-      </div>
+<div class="login-card">
+    
+    <div class="login-header">
+        <div class="login-badge">
+            <i class="ph-bold ph-key"></i> ACCESO ADMIN
+        </div>
+        <span class="login-subtitle">Gestión de Presencia</span>
     </div>
-  </div>
+
+    <form method="POST">
+        {{ form.hidden_tag() }}
+
+        <div class="mb-4">
+            <label class="form-label">Empresa</label>
+            <div class="input-group">
+                <span class="input-group-text bg-white border-3 border-dark border-end-0">
+                    <i class="ph-bold ph-buildings"></i>
+                </span>
+                {{ form.empresa_id(class="form-select border-start-0") }}
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label">Identificación (NIF)</label>
+            <div class="input-group">
+                <span class="input-group-text bg-white border-3 border-dark border-end-0">
+                    <i class="ph-bold ph-identification-card"></i>
+                </span>
+                {{ form.nif(class="form-control border-start-0", placeholder="Tu NIF") }}
+            </div>
+            {% for error in form.nif.errors %}
+                <div class="text-danger">{{ error }}</div>
+            {% endfor %}
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label">Contraseña</label>
+            <div class="input-group">
+                <span class="input-group-text bg-white border-3 border-dark border-end-0">
+                    <i class="ph-bold ph-lock"></i>
+                </span>
+                {{ form.password(class="form-control border-start-0", placeholder="********") }}
+            </div>
+            {% for error in form.password.errors %}
+                <div class="text-danger">{{ error }}</div>
+            {% endfor %}
+        </div>
+
+        <div class="d-grid">
+            <button type="submit" class="btn btn-login">
+                Entrar al Sistema <i class="ph-bold ph-arrow-right ms-2"></i>
+            </button>
+        </div>
+
+        <div class="text-center mt-4">
+            <small class="fw-bold" style="letter-spacing: 1px; opacity: 0.6;">PROYECTO DAM 2026</small>
+        </div>
+    </form>
 </div>
 {% endblock %}

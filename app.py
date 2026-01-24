@@ -1,7 +1,9 @@
 from functools import wraps
+from datetime import datetime  # IMPORTANTE: Necesario para gestionar las horas
 
 from flask import Flask, render_template, redirect, url_for, flash, session, request
 from sqlalchemy.exc import OperationalError
+from werkzeug.security import generate_password_hash
 
 from config import Config
 from extensions import db, migrate, jwt, api
@@ -28,11 +30,12 @@ def create_app():
     jwt.init_app(app)
     api.init_app(app)
 
-    # REGISTRO DE BLUEPRINTS
+    # REGISTRO DE BLUEPRINTS (API para la App Móvil)
     api.register_blueprint(AuthBlueprint, url_prefix="/api")
     api.register_blueprint(EmpresaBlueprint, url_prefix="/api")
     api.register_blueprint(FichajeBlueprint, url_prefix="/api")
 
+    # --- DECORADOR DE SEGURIDAD ---
     def admin_required(view):
         @wraps(view)
         def wrapped(*args, **kwargs):
@@ -45,11 +48,7 @@ def create_app():
             except OperationalError:
                 db.session.remove()
                 session.clear()
-                flash(
-                    "Se ha perdido la conexión con la base de datos. "
-                    "Vuelve a iniciar sesión.",
-                    "danger",
-                )
+                flash("Se ha perdido la conexión. Vuelve a iniciar sesión.", "danger")
                 return redirect(url_for("login"))
 
             if not trabajador or not trabajador.rol:
@@ -62,9 +61,9 @@ def create_app():
                 return redirect(url_for("login"))
 
             return view(*args, **kwargs)
-
         return wrapped
 
+    # --- RUTAS PÚBLICAS ---
     @app.get("/")
     def index():
         return render_template("index.html")
@@ -73,9 +72,7 @@ def create_app():
     def login():
         form = LoginForm()
         empresas = Empresa.query.order_by(Empresa.nombrecomercial).all()
-        form.empresa_id.choices = [
-            (e.id_empresa, e.nombrecomercial) for e in empresas
-        ]
+        form.empresa_id.choices = [(e.id_empresa, e.nombrecomercial) for e in empresas]
 
         if form.validate_on_submit():
             trabajador = Trabajador.query.filter_by(nif=form.nif.data).first()
@@ -83,10 +80,7 @@ def create_app():
             if trabajador and trabajador.check_password(form.password.data):
                 if trabajador.idEmpresa != form.empresa_id.data:
                     flash("El trabajador no pertenece a esa empresa.", "danger")
-                elif not trabajador.rol or trabajador.rol.nombre_rol.lower() not in (
-                    "administrador",
-                    "superadministrador",
-                ):
+                elif not trabajador.rol or trabajador.rol.nombre_rol.lower() not in ("administrador", "superadministrador"):
                     flash("No tiene rol de administrador.", "danger")
                 else:
                     session.clear()
@@ -105,34 +99,28 @@ def create_app():
         flash("Sesión cerrada.", "info")
         return redirect(url_for("index"))
 
+    # --- RUTAS PRIVADAS (PANEL Y EMPRESA) ---
     @app.get("/panel")
     @admin_required
     def panel():
         trabajador = Trabajador.query.get(session.get("user_id"))
-
-        empresa = None
-        stats = {
-            "empleados": 0,
-            "horarios": 0,
-            "roles": 0,
-            "fichajes_hoy": 0 # Dato extra para dar sensación de 'vivo'
-        }
-
         empresa_id = session.get("empresa_id")
+        empresa = Empresa.query.get(empresa_id) if empresa_id else None
+        
+        # Estadísticas para el Dashboard
+        from models import Fichaje
+        stats = {
+            "empleados": 0, "horarios": 0, "roles": 0, "fichajes_total": 0
+        }
+        
         if empresa_id:
-            empresa = Empresa.query.get(empresa_id)
-
-            # CALCULAMOS LAS ESTADÍSTICAS REALES
             stats["empleados"] = Trabajador.query.filter_by(idEmpresa=empresa_id).count()
-            stats["horarios"] = Horario.query.count() # Los horarios son globales o podrías filtrarlos si tuvieran empresa
+            stats["horarios"] = Horario.query.count()
             stats["roles"] = Rol.query.count()
-
-            # Simulamos conteo de fichajes de hoy (O contamos reales si quieres)
-            # Para simplificar ahora y no importar fechas complejas, dejaremos fichajes a 0 o contaremos el total
-            from models import Fichaje
-            stats["fichajes_total"] = Fichaje.query.filter(Fichaje.id_trabajador.in_(
-                [t.id_trabajador for t in Trabajador.query.filter_by(idEmpresa=empresa_id).all()]
-            )).count()
+            # Fichajes totales de la empresa
+            ids_empleados = [t.id_trabajador for t in Trabajador.query.filter_by(idEmpresa=empresa_id).all()]
+            if ids_empleados:
+                stats["fichajes_total"] = Fichaje.query.filter(Fichaje.id_trabajador.in_(ids_empleados)).count()
 
         return render_template("panel.html", trabajador=trabajador, empresa=empresa, stats=stats)
 
@@ -153,13 +141,13 @@ def create_app():
             empresa.latitud = form.latitud.data
             empresa.longitud = form.longitud.data
             empresa.radio = form.radio.data
-
             db.session.commit()
             flash("Datos de empresa actualizados.", "success")
             return redirect(url_for("empresa_view"))
 
         return render_template("empresa.html", form=form)
 
+    # --- GESTIÓN DE ROLES ---
     @app.get("/roles")
     @admin_required
     def roles_list():
@@ -172,16 +160,14 @@ def create_app():
         form = RolForm()
         if form.validate_on_submit():
             nombre = form.nombre_rol.data.strip()
-            existente = Rol.query.filter(Rol.nombre_rol == nombre).first()
-            if existente:
+            if Rol.query.filter_by(nombre_rol=nombre).first():
                 flash("Ya existe un rol con ese nombre.", "danger")
             else:
-                rol = Rol(nombre_rol=nombre)
-                db.session.add(rol)
+                db.session.add(Rol(nombre_rol=nombre))
                 db.session.commit()
                 flash("Rol creado.", "success")
                 return redirect(url_for("roles_list"))
-        return render_template("rol_form.html", form=form, titulo="Nuevo rol")
+        return render_template("rol_form.html", form=form, is_new=True)
 
     @app.route("/roles/<int:rol_id>/editar", methods=["GET", "POST"])
     @admin_required
@@ -190,17 +176,15 @@ def create_app():
         form = RolForm(obj=rol)
         if form.validate_on_submit():
             nombre = form.nombre_rol.data.strip()
-            existente = Rol.query.filter(
-                Rol.nombre_rol == nombre, Rol.id_rol != rol.id_rol
-            ).first()
+            existente = Rol.query.filter(Rol.nombre_rol == nombre, Rol.id_rol != rol.id_rol).first()
             if existente:
-                flash("Ya existe un rol con ese nombre.", "danger")
+                flash("Ya existe otro rol con ese nombre.", "danger")
             else:
                 rol.nombre_rol = nombre
                 db.session.commit()
                 flash("Rol actualizado.", "success")
                 return redirect(url_for("roles_list"))
-        return render_template("rol_form.html", form=form, titulo="Editar rol")
+        return render_template("rol_form.html", form=form, is_new=False)
 
     @app.post("/roles/<int:rol_id>/eliminar")
     @admin_required
@@ -214,126 +198,87 @@ def create_app():
             flash("Rol eliminado.", "success")
         return redirect(url_for("roles_list"))
 
+    # --- GESTIÓN DE EMPLEADOS ---
     @app.get("/empleados")
     @admin_required
     def empleados_list():
         empresa_id = session.get("empresa_id")
-        if not empresa_id:
-            flash("No hay empresa seleccionada.", "danger")
-            return redirect(url_for("login"))
-
-        empleados = (
-            Trabajador.query.filter_by(idEmpresa=empresa_id)
-            .order_by(Trabajador.apellidos, Trabajador.nombre)
-            .all()
-        )
+        empleados = Trabajador.query.filter_by(idEmpresa=empresa_id).order_by(Trabajador.apellidos).all()
         return render_template("empleados_list.html", empleados=empleados)
 
     @app.route("/empleados/nuevo", methods=["GET", "POST"])
     @admin_required
     def empleado_new():
         empresa_id = session.get("empresa_id")
-        if not empresa_id:
-            flash("No hay empresa seleccionada.", "danger")
-            return redirect(url_for("login"))
-
         form = TrabajadorForm()
-
-        roles = Rol.query.order_by(Rol.nombre_rol).all()
-        form.rol_id.choices = [(r.id_rol, r.nombre_rol) for r in roles]
-
-        horarios = Horario.query.order_by(Horario.nombre_horario).all()
-        form.horario_id.choices = [(h.id_horario, h.nombre_horario) for h in horarios]
+        form.rol_id.choices = [(r.id_rol, r.nombre_rol) for r in Rol.query.all()]
+        form.horario_id.choices = [(h.id_horario, h.nombre_horario) for h in Horario.query.all()]
 
         if form.validate_on_submit():
-            nif_limpio = form.nif.data.strip().upper()
-            existente = Trabajador.query.filter_by(nif=nif_limpio).first()
-
-            if existente:
-                flash(f"Error: Ya existe un empleado con el NIF {nif_limpio}.", "danger")
+            nif = form.nif.data.strip().upper()
+            if Trabajador.query.filter_by(nif=nif).first():
+                flash("Ya existe un empleado con ese NIF.", "danger")
             else:
-                trabajador = Trabajador(
-                    nif=nif_limpio,
-                    nombre=form.nombre.data,
-                    apellidos=form.apellidos.data,
-                    email=form.email.data,
-                    telef=form.telef.data,
-                    idEmpresa=empresa_id,
-                    idHorario=form.horario_id.data,
-                    idRol=form.rol_id.data,
+                nuevo = Trabajador(
+                    nif=nif, nombre=form.nombre.data, apellidos=form.apellidos.data,
+                    email=form.email.data, telef=form.telef.data, idEmpresa=empresa_id,
+                    idHorario=form.horario_id.data, idRol=form.rol_id.data
                 )
-                trabajador.set_password(form.passw.data)
-
-                db.session.add(trabajador)
+                nuevo.set_password(form.passw.data)
+                db.session.add(nuevo)
                 db.session.commit()
                 flash("Empleado creado.", "success")
                 return redirect(url_for("empleados_list"))
-
-        return render_template(
-            "empleados_form.html",
-            form=form,
-            titulo="Nuevo empleado",
-        )
+        return render_template("empleados_form.html", form=form, is_new=True)
 
     @app.route("/empleados/<int:emp_id>/editar", methods=["GET", "POST"])
     @admin_required
     def empleado_edit(emp_id):
         empresa_id = session.get("empresa_id")
-        if not empresa_id:
-            flash("No hay empresa seleccionada.", "danger")
-            return redirect(url_for("login"))
-
-        trabajador = Trabajador.query.get_or_404(emp_id)
-        if trabajador.idEmpresa != empresa_id:
-            flash("Empleado de otra empresa.", "danger")
+        # Usamos 'empleado' consistentemente para evitar errores de nombres
+        empleado = Trabajador.query.get_or_404(emp_id)
+        
+        if empleado.idEmpresa != empresa_id:
+            flash("Acceso denegado.", "danger")
             return redirect(url_for("empleados_list"))
 
-        form = TrabajadorForm(obj=trabajador)
+        form = TrabajadorForm(obj=empleado)
+        form.rol_id.choices = [(r.id_rol, r.nombre_rol) for r in Rol.query.all()]
+        form.horario_id.choices = [(h.id_horario, h.nombre_horario) for h in Horario.query.all()]
 
-        roles = Rol.query.order_by(Rol.nombre_rol).all()
-        form.rol_id.choices = [(r.id_rol, r.nombre_rol) for r in roles]
-
-        horarios = Horario.query.order_by(Horario.nombre_horario).all()
-        form.horario_id.choices = [(h.id_horario, h.nombre_horario) for h in horarios]
-
+        # Preseleccionar horario en GET
         if request.method == 'GET':
-            form.horario_id.data = trabajador.idHorario
+            form.horario_id.data = empleado.idHorario
 
         if form.validate_on_submit():
-            trabajador.nif = form.nif.data
-            trabajador.nombre = form.nombre.data
-            trabajador.apellidos = form.apellidos.data
-            trabajador.email = form.email.data
-            trabajador.telef = form.telef.data
-            trabajador.idRol = form.rol_id.data
-            trabajador.idHorario = form.horario_id.data
-
+            # Actualizamos campos manualmente
+            empleado.nif = form.nif.data
+            empleado.nombre = form.nombre.data
+            empleado.apellidos = form.apellidos.data
+            empleado.email = form.email.data
+            empleado.telef = form.telef.data
+            empleado.idRol = form.rol_id.data
+            empleado.idHorario = form.horario_id.data
+            
             if form.passw.data:
-                trabajador.set_password(form.passw.data)
+                empleado.set_password(form.passw.data)
 
             db.session.commit()
             flash("Empleado actualizado.", "success")
-            return redirect(url_for("empleados_list"))
+            return redirect(url_for("empleados_list")) 
 
-        return render_template(
-            "empleados_form.html",
-            form=form,
-            titulo="Editar empleado",
-        )
+        return render_template("empleados_form.html", form=form, titulo="Editar Empleado", is_new=False)
 
     @app.post("/empleados/<int:emp_id>/eliminar")
     @admin_required
     def empleado_delete(emp_id):
-        empresa_id = session.get("empresa_id")
-        trabajador = Trabajador.query.get_or_404(emp_id)
-        if trabajador.idEmpresa != empresa_id:
-            flash("Empleado de otra empresa.", "danger")
-        else:
-            db.session.delete(trabajador)
-            db.session.commit()
-            flash("Empleado eliminado.", "success")
+        empleado = Trabajador.query.get_or_404(emp_id)
+        db.session.delete(empleado)
+        db.session.commit()
+        flash("Empleado eliminado.", "success")
         return redirect(url_for("empleados_list"))
 
+    # --- GESTIÓN DE HORARIOS Y FRANJAS ---
     @app.get("/horarios")
     @admin_required
     def horarios_list():
@@ -346,23 +291,14 @@ def create_app():
         form = HorarioForm()
         if form.validate_on_submit():
             nombre = form.nombre_horario.data.strip()
-            existente = Horario.query.filter_by(nombre_horario=nombre).first()
-
-            if existente:
-                flash(f"Error: Ya existe un horario con el nombre '{nombre}'.", "danger")
+            if Horario.query.filter_by(nombre_horario=nombre).first():
+                flash("Ya existe un horario con ese nombre.", "danger")
             else:
-                horario = Horario(
-                    nombre_horario=nombre,
-                    descripcion=form.descripcion.data,
-                )
-                db.session.add(horario)
+                db.session.add(Horario(nombre_horario=nombre, descripcion=form.descripcion.data))
                 db.session.commit()
                 flash("Horario creado.", "success")
                 return redirect(url_for("horarios_list"))
-
-        return render_template(
-            "horario_form.html", form=form, titulo="Nuevo horario"
-        )
+        return render_template("horario_form.html", form=form, titulo="Nuevo horario", is_new=True)
 
     @app.route("/horarios/<int:horario_id>/editar", methods=["GET", "POST"])
     @admin_required
@@ -375,160 +311,118 @@ def create_app():
             db.session.commit()
             flash("Horario actualizado.", "success")
             return redirect(url_for("horarios_list"))
-        return render_template(
-            "horario_form.html", form=form, titulo="Editar horario"
-        )
+        return render_template("horario_form.html", form=form, titulo="Editar horario", is_new=False)
 
     @app.post("/horarios/<int:horario_id>/eliminar")
     @admin_required
     def horario_delete(horario_id):
         horario = Horario.query.get_or_404(horario_id)
         if horario.trabajadores:
-            flash(
-                "No se puede eliminar un horario con trabajadores asociados.",
-                "danger",
-            )
+            flash("No se puede eliminar un horario con empleados.", "danger")
         else:
             db.session.delete(horario)
             db.session.commit()
             flash("Horario eliminado.", "success")
         return redirect(url_for("horarios_list"))
 
+    # --- GESTIÓN AVANZADA DE FRANJAS ---
+    
     @app.route("/horarios/<int:horario_id>/franjas", methods=["GET", "POST"])
     @admin_required
     def horario_franjas(horario_id):
         horario = Horario.query.get_or_404(horario_id)
-        form = FranjaForm()
+        
+        # LOGICA POST: Añadir nueva franja
+        if request.method == "POST":
+            # Si el POST viene por error del formulario de días, redirigimos
+            if "lunes" in request.form or "martes" in request.form:
+                 return redirect(url_for("horario_franjas", horario_id=horario_id))
 
-        dias = Dia.query.order_by(Dia.id).all()
-        form.dia_id.choices = [(d.id, d.nombre) for d in dias]
-
-        if form.validate_on_submit():
-            dia_id = form.dia_id.data
-            hora_entrada = form.hora_entrada.data
-            hora_salida = form.hora_salida.data
-
-            if hora_entrada >= hora_salida:
-                flash(
-                    "La hora de entrada debe ser anterior a la de salida.",
-                    "danger",
-                )
-            else:
-                existentes = Franja.query.filter_by(
-                    id_horario=horario.id_horario, id_dia=dia_id
-                ).all()
-                solapa = False
-                for f in existentes:
-                    if (
-                        hora_entrada < f.hora_salida
-                        and hora_salida > f.hora_entrada
-                    ):
-                        solapa = True
-                        break
-
-                if solapa:
-                    flash(
-                        "La franja se solapa con otra ya definida para ese día.",
-                        "danger",
+            h_inicio = request.form.get("hora_inicio")
+            h_fin = request.form.get("hora_fin")
+            
+            if h_inicio and h_fin:
+                try:
+                    nueva = Franja(
+                        id_horario=horario_id,
+                        id_dia=1, # Se asigna genérico, ya que usamos días globales
+                        hora_entrada=datetime.strptime(h_inicio, "%H:%M").time(),
+                        hora_salida=datetime.strptime(h_fin, "%H:%M").time()
                     )
-                else:
-                    franja = Franja(
-                        id_dia=dia_id,
-                        id_horario=horario.id_horario,
-                        hora_entrada=hora_entrada,
-                        hora_salida=hora_salida,
-                    )
-                    db.session.add(franja)
+                    db.session.add(nueva)
                     db.session.commit()
-                    flash("Franja creada.", "success")
-                    return redirect(
-                        url_for("horario_franjas", horario_id=horario.id_horario)
-                    )
+                    flash("Franja añadida.", "success")
+                except ValueError:
+                    flash("Formato de hora inválido.", "danger")
+            
+            return redirect(url_for("horario_franjas", horario_id=horario_id))
+        
+        # LOGICA GET: Mostrar
+        franjas = Franja.query.filter_by(id_horario=horario_id).order_by(Franja.hora_entrada).all()
+        return render_template("horario_franjas.html", horario=horario, franjas=franjas)
 
-        franjas = (
-            Franja.query.filter_by(id_horario=horario.id_horario)
-            .join(Dia, Franja.id_dia == Dia.id)
-            .order_by(Dia.id, Franja.hora_entrada)
-            .all()
-        )
+    # NUEVA RUTA: Actualizar los días laborables (Interruptores)
+    @app.post("/horarios/<int:horario_id>/dias")
+    @admin_required
+    def horario_update_dias(horario_id):
+        horario = Horario.query.get_or_404(horario_id)
+        horario.lunes = True if request.form.get("lunes") else False
+        horario.martes = True if request.form.get("martes") else False
+        horario.miercoles = True if request.form.get("miercoles") else False
+        horario.jueves = True if request.form.get("jueves") else False
+        horario.viernes = True if request.form.get("viernes") else False
+        horario.sabado = True if request.form.get("sabado") else False
+        horario.domingo = True if request.form.get("domingo") else False
+        
+        db.session.commit()
+        flash("Días laborables actualizados.", "success")
+        return redirect(url_for("horario_franjas", horario_id=horario_id))
 
-        return render_template(
-            "horario_franjas.html",
-            horario=horario,
-            franjas=franjas,
-            form=form,
-        )
+    # NUEVA RUTA: Eliminar Franja (Botón papelera)
+    @app.post("/franjas/delete/<int:franja_id>")
+    @admin_required
+    def franja_delete(franja_id):
+        franja = Franja.query.get_or_404(franja_id)
+        h_id = franja.id_horario
+        db.session.delete(franja)
+        db.session.commit()
+        flash("Franja eliminada.", "success")
+        return redirect(url_for("horario_franjas", horario_id=h_id))
 
+    # --- GESTIÓN DE EMPRESAS (SUPERADMIN) ---
     @app.get("/empresas")
     @admin_required
     def empresas_list():
-        user_id = session.get("user_id")
-        trabajador = Trabajador.query.get(user_id)
-
-        if not trabajador.rol or trabajador.rol.nombre_rol.lower() != "superadministrador":
-            flash("Acceso restringido a Superadministradores.", "danger")
-            return redirect(url_for("panel"))
-
-        empresas = Empresa.query.order_by(Empresa.nombrecomercial).all()
-        return render_template("empresas_list.html", empresas=empresas)
+        return render_template("empresas_list.html", empresas=Empresa.query.all())
 
     @app.route("/empresas/nueva", methods=["GET", "POST"])
     @admin_required
     def empresa_new():
-        user_id = session.get("user_id")
-        trabajador = Trabajador.query.get(user_id)
-        if not trabajador.rol or trabajador.rol.nombre_rol.lower() != "superadministrador":
-            flash("Acceso restringido a Superadministradores.", "danger")
-            return redirect(url_for("panel"))
-
         form = EmpresaForm()
         if form.validate_on_submit():
-            nombre = form.nombrecomercial.data.strip()
-            cif = form.cif.data.strip().upper()
-
-            existe_nombre = Empresa.query.filter_by(nombrecomercial=nombre).first()
-            existe_cif = Empresa.query.filter_by(cif=cif).first()
-
-            if existe_nombre:
-                flash(f"Error: Ya existe una empresa llamada '{nombre}'.", "danger")
-            elif existe_cif:
-                flash(f"Error: Ya existe una empresa con CIF '{cif}'.", "danger")
-            else:
-                empresa = Empresa(
-                    nombrecomercial=nombre,
-                    cif=cif,
-                    latitud=form.latitud.data,
-                    longitud=form.longitud.data,
-                    radio=form.radio.data
-                )
-                db.session.add(empresa)
-                db.session.commit()
-                flash("Empresa creada correctamente.", "success")
-                return redirect(url_for("empresas_list"))
-
+            empresa = Empresa(
+                nombrecomercial=form.nombrecomercial.data,
+                cif=form.cif.data,
+                latitud=form.latitud.data, longitud=form.longitud.data, radio=form.radio.data
+            )
+            db.session.add(empresa)
+            db.session.commit()
+            flash("Empresa creada.", "success")
+            return redirect(url_for("empresas_list"))
         return render_template("empresa_form.html", form=form, titulo="Nueva Empresa")
 
     @app.post("/empresas/<int:empresa_id>/eliminar")
     @admin_required
     def empresa_delete(empresa_id):
-        user_id = session.get("user_id")
-        trabajador = Trabajador.query.get(user_id)
-        if not trabajador.rol or trabajador.rol.nombre_rol.lower() != "superadministrador":
-            flash("No tienes permisos para esto.", "danger")
-            return redirect(url_for("panel"))
-
         empresa = Empresa.query.get_or_404(empresa_id)
-
         if empresa.trabajadores:
-            flash("No se puede eliminar la empresa porque tiene empleados asociados.", "danger")
+            flash("No se puede eliminar, tiene empleados.", "danger")
         else:
             db.session.delete(empresa)
             db.session.commit()
             flash("Empresa eliminada.", "success")
-
         return redirect(url_for("empresas_list"))
 
     return app
-
 
 app = create_app()
