@@ -341,7 +341,7 @@ def create_app():
                 try:
                     nueva = Franja(
                         id_horario=horario_id,
-                        id_dia=1, 
+                        id_dia=1,
                         hora_entrada=datetime.strptime(h_inicio, "%H:%M").time(),
                         hora_salida=datetime.strptime(h_fin, "%H:%M").time()
                     )
@@ -402,7 +402,7 @@ def create_app():
     def incidencia_nueva():
         empresa_id = session.get("empresa_id")
         form = IncidenciaCrearForm()
-        
+
         # Cargar el selector de empleados SOLO con los de mi empresa
         empleados = Trabajador.query.filter_by(idEmpresa=empresa_id).order_by(Trabajador.nombre).all()
         form.trabajador_id.choices = [(t.id_trabajador, f"{t.nombre} {t.apellidos}") for t in empleados]
@@ -418,10 +418,10 @@ def create_app():
                 estado='APROBADA', # Nace aprobada
                 comentario_admin="Creada manualmente por Administración."
             )
-            
+
             db.session.add(nueva_incidencia)
             db.session.commit()
-            
+
             flash("Incidencia creada y aprobada correctamente.", "success")
             return redirect(url_for("incidencias_list"))
 
@@ -460,7 +460,7 @@ def create_app():
     @admin_required
     def fichajes_list():
         empresa_id = session.get("empresa_id")
-        
+
         # 1. Filtros
         filtro_empleado = request.args.get('empleado_id', type=int)
         filtro_fecha = request.args.get('fecha')
@@ -470,7 +470,7 @@ def create_app():
 
         if filtro_empleado:
             query = query.filter(Trabajador.id_trabajador == filtro_empleado)
-        
+
         if filtro_fecha:
             query = query.filter(db.func.date(Fichaje.fecha_hora) == filtro_fecha)
 
@@ -484,7 +484,7 @@ def create_app():
 
         for f in fichajes_raw:
             emp_id = f.id_trabajador
-            
+
             if f.tipo == 'ENTRADA':
                 # Si ya hay una entrada pendiente -> Error Zombie (Entrada sin salida previa)
                 if emp_id in pendientes:
@@ -498,17 +498,17 @@ def create_app():
                         'is_zombie': True, # Flag para icono
                         'fecha_ref': entrada_previa.fecha_hora
                     })
-                
+
                 # Guardamos la nueva entrada
                 pendientes[emp_id] = f
-            
+
             elif f.tipo == 'SALIDA':
                 if emp_id in pendientes:
                     # Cierre de ciclo correcto
                     entrada = pendientes.pop(emp_id)
                     delta = f.fecha_hora - entrada.fecha_hora
                     horas = delta.total_seconds() / 3600
-                    
+
                     # Formato legible: "8h 30m"
                     duracion_txt = f"{int(horas)}h {int((horas*60)%60)}m"
                     status = 'closed'
@@ -543,14 +543,14 @@ def create_app():
         for emp_id, entrada in pendientes.items():
             delta = datetime.now() - entrada.fecha_hora
             horas = delta.total_seconds() / 3600
-            
+
             status = 'active'
             is_long = False
-            
+
             if horas > 16: # Olvido probable (más de 16h abierto)
                 status = 'error'
                 is_long = True
-            
+
             jornadas.append({
                 'trabajador': entrada.trabajador,
                 'entrada': entrada,
@@ -567,8 +567,8 @@ def create_app():
 
         empleados = Trabajador.query.filter_by(idEmpresa=empresa_id).order_by(Trabajador.nombre).all()
 
-        return render_template("fichajes_list.html", 
-                               jornadas=jornadas, 
+        return render_template("fichajes_list.html",
+                               jornadas=jornadas,
                                empleados=empleados,
                                filtro_empleado=filtro_empleado,
                                filtro_fecha=filtro_fecha)
@@ -579,14 +579,18 @@ def create_app():
     def fichaje_nuevo():
         empresa_id = session.get("empresa_id")
         empresa = Empresa.query.get(empresa_id)
-        
+
         form = FichajeManualForm()
-        # Cargar empleados para el select
         empleados = Trabajador.query.filter_by(idEmpresa=empresa_id).order_by(Trabajador.nombre).all()
         form.trabajador_id.choices = [(t.id_trabajador, f"{t.nombre} {t.apellidos}") for t in empleados]
 
         if form.validate_on_submit():
-            # Al ser manual, usamos la lat/lon de la empresa para que aparezca "en sitio"
+            # --- NUEVO: VALIDACIÓN DE FECHA ---
+            if form.fecha_hora.data > datetime.now():
+                flash("No puedes registrar fichajes en el futuro.", "danger")
+                return render_template("fichaje_manual.html", form=form)
+            # ----------------------------------
+
             lat = empresa.latitud if empresa.latitud else 0.0
             lon = empresa.longitud if empresa.longitud else 0.0
 
@@ -597,10 +601,10 @@ def create_app():
                 latitud=lat,
                 longitud=lon
             )
-            
+
             db.session.add(nuevo_fichaje)
             db.session.commit()
-            
+
             flash("Fichaje manual registrado correctamente.", "success")
             return redirect(url_for("fichajes_list"))
 
