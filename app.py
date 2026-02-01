@@ -2,6 +2,7 @@ from functools import wraps
 from datetime import datetime
 
 from flask import Flask, render_template, redirect, url_for, flash, session, request
+from sqlalchemy import or_  # <--- IMPORTANTE: Necesario para buscar por NIF o Email
 from sqlalchemy.exc import OperationalError
 from werkzeug.security import generate_password_hash
 
@@ -78,7 +79,18 @@ def create_app():
         form.empresa_id.choices = [(e.id_empresa, e.nombrecomercial) for e in empresas]
 
         if form.validate_on_submit():
-            trabajador = Trabajador.query.filter_by(nif=form.nif.data).first()
+            # --- CORRECCIÓN: BÚSQUEDA ROBUSTA (WEB) ---
+            identificador = form.nif.data.strip()
+            # Buscamos coincidencias exactas, mayúsculas y minúsculas
+            posibles_valores = {identificador, identificador.lower(), identificador.upper()}
+
+            trabajador = Trabajador.query.filter(
+                or_(
+                    Trabajador.nif.in_(posibles_valores),
+                    Trabajador.email.in_(posibles_valores)
+                )
+            ).first()
+            # ------------------------------------------
 
             if trabajador and trabajador.check_password(form.password.data):
                 if trabajador.idEmpresa != form.empresa_id.data:
