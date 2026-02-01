@@ -9,6 +9,7 @@ from werkzeug.security import generate_password_hash
 from config import Config
 from extensions import db, migrate, jwt, api
 from models import Trabajador, Empresa, Rol, Horario, Dia, Franja, Incidencia, Fichaje
+# IMPORTANTE: Asegúrate de que forms.py tiene las correcciones de importación que te pasé antes
 from forms import (
     LoginForm,
     EmpresaForm,
@@ -77,7 +78,8 @@ def create_app():
             trabajador = Trabajador.query.get(user_id)
             
             # Solo deja pasar si es explícitamente Superadmin
-            if not trabajador or trabajador.rol.nombre_rol.lower() != "superadministrador":
+            # CORRECCIÓN ANTI-CRASH: Verificamos que 'rol' exista
+            if not trabajador or not trabajador.rol or trabajador.rol.nombre_rol.lower() != "superadministrador":
                 flash("Acceso restringido a Superadministradores.", "danger")
                 return redirect(url_for("panel"))
 
@@ -215,7 +217,7 @@ def create_app():
     def empresa_delete(empresa_id):
         empresa = Empresa.query.get_or_404(empresa_id)
         
-        # LOGOUT DE SEGURIDAD
+        # LOGOUT DE SEGURIDAD (CORRECCIÓN AÑADIDA A TU CÓDIGO)
         empresa_activa_id = session.get("empresa_id")
         es_empresa_activa = (empresa_activa_id == empresa.id_empresa)
 
@@ -304,7 +306,7 @@ def create_app():
         if form.validate_on_submit():
             nif = form.nif.data.strip().upper()
             if Trabajador.query.filter_by(nif=nif).first():
-                flash("NIF ya registrado.", "danger")
+                flash("Ese NIF ya está registrado.", "danger")
             else:
                 nuevo = Trabajador(
                     nif=nif, nombre=form.nombre.data, apellidos=form.apellidos.data,

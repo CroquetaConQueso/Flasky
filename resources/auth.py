@@ -1,6 +1,5 @@
 import random
 import string
-from flask import request
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from flask_jwt_extended import create_access_token
@@ -8,7 +7,6 @@ from sqlalchemy import or_
 
 from extensions import db
 from models import Trabajador
-# IMPORTANTE: Importamos PasswordResetSchema
 from schemas import UserLoginSchema, PasswordResetSchema 
 from utils.email_sender import enviar_correo_password
 
@@ -34,9 +32,9 @@ class Login(MethodView):
             # Crear token
             access_token = create_access_token(identity=str(trabajador.id_trabajador))
             
-            # --- CAMBIO CRÍTICO PARA LA APP ---
+            # --- DATOS PARA LA APP ---
             # Devolvemos el Token Y los datos del usuario.
-            # Sin esto, la App no sabe quién ha entrado.
+            # Sin esto, la App no sabe quién ha entrado y da error "Verificar Datos".
             return {
                 "access_token": access_token,
                 "id_trabajador": trabajador.id_trabajador,
@@ -64,7 +62,7 @@ class PasswordReset(MethodView):
         ).first()
 
         if not trabajador:
-            # No damos pistas de si existe o no por seguridad
+            # Respuesta genérica por seguridad
             return {"message": "Si los datos son correctos, recibirás un correo"}, 200
 
         if not trabajador.email:

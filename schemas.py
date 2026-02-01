@@ -1,30 +1,29 @@
 from marshmallow import Schema, fields, validate
 
-# --- ESQUEMAS BÁSICOS ---
-
+# --- ESQUEMAS BASICOS ---
 class PlainEmpresaSchema(Schema):
     id_empresa = fields.Int(dump_only=True)
-    nombrecomercial = fields.String(required=True, validate=validate.Length(max=100))
-    cif = fields.String(required=True, validate=validate.Length(max=20))
+    nombrecomercial = fields.String(required=True)
+    cif = fields.String(required=True)
     latitud = fields.Float()
     longitud = fields.Float()
     radio = fields.Float()
 
 class PlainRolSchema(Schema):
     id_rol = fields.Int(dump_only=True)
-    nombre_rol = fields.String(required=True, validate=validate.Length(max=50))
+    nombre_rol = fields.String(required=True)
 
 class PlainTrabajadorSchema(Schema):
     id_trabajador = fields.Int(dump_only=True)
-    nif = fields.String(required=True, validate=validate.Length(max=20)) 
-    nombre = fields.String(required=True, validate=validate.Length(max=50))
-    apellidos = fields.String(required=True, validate=validate.Length(max=100))
-    email = fields.String(validate=validate.Email())
-    telef = fields.String(validate=validate.Length(max=20))
+    nif = fields.String(required=True)
+    nombre = fields.String(required=True)
+    apellidos = fields.String(required=True)
+    email = fields.String()
+    telef = fields.String()
 
 class PlainHorarioSchema(Schema):
     id_horario = fields.Int(dump_only=True)
-    nombre_horario = fields.String(required=True, validate=validate.Length(max=50))
+    nombre_horario = fields.String(required=True)
     descripcion = fields.String()
 
 class PlainFichajeSchema(Schema):
@@ -34,24 +33,20 @@ class PlainFichajeSchema(Schema):
     latitud = fields.Float()
     longitud = fields.Float()
 
-# --- ESQUEMAS DE LOGIN Y RECUPERACIÓN (CRÍTICO) ---
-
+# --- LOGIN Y RECUPERACIÓN ---
 class UserLoginSchema(Schema):
-    # Validamos longitud suficiente para Email
+    # Aceptamos hasta 100 chars para Emails
     nif = fields.String(required=True, validate=validate.Length(min=4, max=100))
     password = fields.String(required=True, load_only=True)
 
 class PasswordResetSchema(Schema):
-    # Esquema para solicitar recuperación (Email o NIF)
     identificador = fields.String(required=True, validate=validate.Length(min=4, max=100))
 
-# --- ESQUEMAS COMPLETOS (Relaciones) ---
-
+# --- ESQUEMAS COMPLETOS ---
 class TrabajadorSchema(PlainTrabajadorSchema):
     idEmpresa = fields.Int(required=True, load_only=True)
     idRol = fields.Int(required=True, load_only=True)
     idHorario = fields.Int(load_only=True)
-    
     empresa = fields.Nested(PlainEmpresaSchema(), dump_only=True)
     rol = fields.Nested(PlainRolSchema(), dump_only=True)
     horario = fields.Nested(PlainHorarioSchema(), dump_only=True)
@@ -73,5 +68,4 @@ class IncidenciaSchema(Schema):
     comentario_trabajador = fields.String()
     estado = fields.String(dump_only=True)
     comentario_admin = fields.String(dump_only=True)
-    
     trabajador = fields.Nested(PlainTrabajadorSchema(), dump_only=True)
