@@ -62,7 +62,7 @@
         </div>
 
         <div class="text-center mt-3">
-            <a href="#" id="linkRecuperar" class="text-decoration-none fw-bold" style="color: #212121; font-size: 0.9rem; letter-spacing: 0.5px;">
+            <a href="{{ url_for('reset_password_web') }}" class="text-decoration-none fw-bold" style="color: #212121; font-size: 0.9rem; letter-spacing: 0.5px;">
                 ¿Has olvidado tu contraseña?
             </a>
         </div>
@@ -73,32 +73,4 @@
     </form>
 </div>
 
-<script>
-    document.getElementById('linkRecuperar').addEventListener('click', function(e) {
-      e.preventDefault();
-      
-      let identificador = prompt("Introduce tu NIF o Email de administrador:");
-      
-      if (identificador) {
-          fetch('/reset-password', {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({ identificador: identificador })
-          })
-          .then(response => {
-              if (response.ok) {
-                  alert("SOLICITUD ENVIADA: Si los datos son correctos, recibirás la nueva contraseña en tu correo.");
-              } else {
-                  alert("ERROR: No se pudo procesar la solicitud. Verifica los datos.");
-              }
-          })
-          .catch(error => {
-              console.error('Error:', error);
-              alert("ERROR DE CONEXIÓN: No se puede contactar con el servidor.");
-          });
-      }
-    });
-</script>
 {% endblock %}

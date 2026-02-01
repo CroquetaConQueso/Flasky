@@ -32,9 +32,7 @@ class Login(MethodView):
             # Crear token
             access_token = create_access_token(identity=str(trabajador.id_trabajador))
             
-            # --- DATOS PARA LA APP ---
-            # Devolvemos el Token Y los datos del usuario.
-            # Sin esto, la App no sabe quién ha entrado y da error "Verificar Datos".
+            # Devolver token y datos básicos del usuario
             return {
                 "access_token": access_token,
                 "id_trabajador": trabajador.id_trabajador,
@@ -47,11 +45,17 @@ class Login(MethodView):
 
 @blp.route("/reset-password")
 class PasswordReset(MethodView):
-    # Usamos el esquema para validar input automáticamente
     @blp.arguments(PasswordResetSchema)
     def post(self, user_data):
-        identificador = user_data["identificador"].strip()
+        # LÓGICA FLEXIBLE: Buscamos el dato en cualquier campo posible
+        # Esto soluciona el error "Verifica los datos" si la app envía 'email' en vez de 'identificador'
+        raw_identificador = user_data.get("identificador") or user_data.get("email") or user_data.get("nif")
 
+        if not raw_identificador:
+            # Si no llega ninguno de los 3, entonces sí damos error
+            abort(422, message="Debes proporcionar tu Email o NIF para recuperar la contraseña.")
+
+        identificador = raw_identificador.strip()
         posibles_valores = {identificador, identificador.lower(), identificador.upper()}
 
         trabajador = Trabajador.query.filter(
@@ -62,13 +66,13 @@ class PasswordReset(MethodView):
         ).first()
 
         if not trabajador:
-            # Respuesta genérica por seguridad
+            # Seguridad: No revelamos si el usuario existe o no
             return {"message": "Si los datos son correctos, recibirás un correo"}, 200
 
         if not trabajador.email:
             return {"message": "Este usuario no tiene email configurado"}, 400
 
-        # Generar contraseña temporal
+        # Generar nueva contraseña aleatoria
         caracteres = string.ascii_letters + string.digits
         nueva_pass = ''.join(random.choice(caracteres) for i in range(8))
 
