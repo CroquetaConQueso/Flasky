@@ -1,4 +1,6 @@
-/* ESTILO: NEO-BRUTALISM POP (TRENDY) */
+/* static/css/panel.css */
+
+/* --- ESTILO BASE: NEO-BRUTALISM POP (TRENDY) --- */
 
 body {
     background-color: #fff9f0; /* Crema suave */
@@ -30,7 +32,7 @@ body {
     box-shadow: 4px 4px 0px #888;
 }
 
-/* Tarjetas Base */
+/* Tarjetas Base (Stats y Acciones Normales) */
 .stat-card, .action-card {
     border: 3px solid #000;
     border-radius: 12px;
@@ -44,28 +46,134 @@ body {
     box-shadow: 5px 5px 0px #000; /* Sombra dura */
 }
 
-/* Colores específicos para cada tarjeta (DIVERSIÓN) */
-/* Usamos nth-child para dar colores aleatorios a las stats */
+/* Colores específicos para cada tarjeta de Stats */
 .col-md-3:nth-child(1) .stat-card { background: #ff99c8; } /* Rosa */
 .col-md-3:nth-child(2) .stat-card { background: #d0f4de; } /* Verde menta */
 .col-md-3:nth-child(3) .stat-card { background: #a9def9; } /* Azul cielo */
 .col-md-3:nth-child(4) .stat-card { background: #e4c1f9; } /* Lila */
 
-/* Hover Acciones */
+/* Hover Acciones Normales */
 .action-card:hover {
     transform: translate(-3px, -3px);
     box-shadow: 8px 8px 0px #000;
-    background: #fff; /* Al hover se pone blanco */
+    background: #fff;
 }
 
-/* Estilos de texto */
+/* Estilos de texto Base */
 .stat-info h3 { font-weight: 900; font-size: 2.5rem; }
-.action-title { font-weight: 900; font-size: 1.4rem; text-transform: uppercase; margin-bottom: 0.5rem; background: #ffff00; display: inline-block; border: 2px solid black; padding: 2px 5px;}
+.action-title { 
+    font-weight: 900; 
+    font-size: 1.4rem; 
+    text-transform: uppercase; 
+    margin-bottom: 0.5rem; 
+    background: #ffff00; 
+    display: inline-block; 
+    border: 2px solid black; 
+    padding: 2px 5px;
+}
 .action-desc { font-weight: 500; font-size: 0.9rem; }
 
-/* Iconos */
+/* Iconos Base */
 .action-icon, .stat-icon { font-size: 3rem; filter: drop-shadow(2px 2px 0 #000); }
 
 /* Layout ancho */
 .action-wide { text-align: left; }
 .action-wide .action-icon { margin-right: 20px; }
+
+
+/* --- NUEVO: ZONA SUPERADMIN (POP RADICAL) --- */
+
+/* Título de Zona God Mode */
+.super-zone-title {
+    background-color: #000;
+    color: #fff;
+    font-weight: 900;
+    text-transform: uppercase;
+    font-size: 2rem;
+    padding: 10px 20px;
+    display: inline-block;
+    transform: rotate(-2deg);
+    box-shadow: 5px 5px 0px #ffde59; /* Sombra Amarilla */
+    margin-bottom: 40px;
+    margin-top: 60px;
+    border: 3px solid #fff;
+}
+
+/* Estilo Base de las Tarjetas Radicales */
+.radical-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    min-height: 250px;
+    border: 4px solid #000;
+    padding: 2rem;
+    text-decoration: none !important;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    overflow: hidden;
+    border-radius: 0px; /* Bordes cuadrados más agresivos */
+}
+
+/* Efecto Hover Radical: Salto y Rotación */
+.radical-card:hover {
+    transform: translate(-8px, -8px) rotate(1deg);
+    box-shadow: 15px 15px 0px #000;
+    z-index: 10;
+}
+
+/* Icono Gigante de fondo */
+.radical-bg-icon {
+    position: absolute;
+    bottom: -20px;
+    right: -20px;
+    font-size: 10rem;
+    opacity: 0.2;
+    transform: rotate(-15deg);
+    color: #000;
+    pointer-events: none;
+}
+
+/* Textos Radicales */
+.radical-title {
+    font-size: 2rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    color: #000;
+    line-height: 0.9;
+    margin-bottom: 15px;
+    position: relative;
+    z-index: 2;
+    text-shadow: 2px 2px 0px #fff;
+}
+
+.radical-desc {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #000;
+    background: #fff;
+    padding: 5px 10px;
+    display: inline-block;
+    border: 2px solid #000;
+    box-shadow: 3px 3px 0px rgba(0,0,0,0.2);
+}
+
+/* --- COLORES RADICALES --- */
+
+/* 1. EMPRESAS: Rosa Pop */
+.radical-empresas {
+    background-color: #ff9ff3; 
+    box-shadow: 8px 8px 0px #000;
+}
+.radical-empresas:hover {
+    background-color: #ff79e8;
+}
+
+/* 2. ROLES: Azul Eléctrico */
+.radical-roles {
+    background-color: #54a0ff;
+    box-shadow: 8px 8px 0px #000;
+}
+.radical-roles:hover {
+    background-color: #2e86de;
+}

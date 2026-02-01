@@ -1,103 +1,130 @@
 {% extends "base.html" %}
 
-{% block title %}{{ titulo }}{% endblock %}
+{% block title %}
+    {% if is_new %}Nuevo Empleado{% else %}Editar Empleado{% endif %} - RRHH Flask
+{% endblock %}
 
 {% block css %}
-<style>
-    /* Estilo Sticker para el título */
-    .sticker-label {
-        background: #ffde59;
-        border: 3px solid #000;
-        padding: 6px 18px;
-        font-weight: 900;
-        display: inline-block;
-        transform: rotate(-2deg);
-        margin-bottom: -15px;
-        position: relative;
-        z-index: 5;
-        box-shadow: 4px 4px 0px #000;
-        text-transform: uppercase;
-        font-size: 0.9rem;
-    }
-</style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/empresa_form.css') }}">
+    <style>
+        .form-title { background-color: #a9def9 !important; }
+    </style>
 {% endblock %}
 
 {% block content %}
-<div class="container" style="max-width: 800px;">
-
-    <div class="mb-5">
-        <a href="{{ url_for('empleados_list') }}" class="btn btn-link text-dark fw-bold px-0">
-            <i class="ph-bold ph-arrow-left"></i> VOLVER AL LISTADO
-        </a>
-    </div>
-
-    <div class="sticker-label">
-        {{ titulo }}
-    </div>
-
-    <div class="card card-pop pt-4">
-        <div class="card-body p-4">
-            
-            <form method="POST">
-                {{ form.hidden_tag() }}
-
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label">Nombre</label>
-                        {{ form.nombre(class="form-control") }}
-                        {% for error in form.nombre.errors %}
-                            <div class="text-danger fw-bold small">{{ error }}</div>
-                        {% endfor %}
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Apellidos</label>
-                        {{ form.apellidos(class="form-control") }}
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label">NIF / DNI</label>
-                        {{ form.nif(class="form-control") }}
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Email</label>
-                        {{ form.email(class="form-control") }}
-                    </div>
-                    
-                    <div class="col-md-6">
-                         <label class="form-label">Teléfono</label>
-                         {{ form.telef(class="form-control") }}
-                    </div>
-
-                    <div class="col-md-12">
-                        <label class="form-label">Contraseña</label>
-                        {{ form.passw(class="form-control", placeholder="Dejar en blanco para mantener la actual" if not is_new else "Contraseña obligatoria") }}
-                        {% for error in form.passw.errors %}
-                            <div class="text-danger fw-bold small">{{ error }}</div>
-                        {% endfor %}
-                    </div>
-
-                    <hr class="my-4" style="border-top: 3px solid #000; opacity: 1;">
-
-                    <div class="col-md-6">
-                        <label class="form-label">Rol de Usuario</label>
-                        {{ form.rol_id(class="form-select") }}
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Horario Asignado</label>
-                        {{ form.horario_id(class="form-select") }}
-                    </div>
-                </div>
-
-                <div class="d-grid mt-4 gap-3">
-                    <button type="submit" class="btn btn-pop btn-pop-success py-3 fs-5">
-                        <i class="ph-bold ph-floppy-disk"></i> GUARDAR EMPLEADO
-                    </button>
-                     <a href="{{ url_for('empleados_list') }}" class="btn btn-pop btn-pop-danger">
-                        CANCELAR
-                    </a>
-                </div>
-            </form>
+<div class="form-container" style="max-width: 800px;"> <div class="form-card animate__animated animate__zoomIn">
+        
+        <div class="form-header">
+            <h1 class="form-title">
+                {% if is_new %}
+                    <i class="ph-bold ph-user-plus"></i> NUEVO EMPLEADO
+                {% else %}
+                    <i class="ph-bold ph-user-gear"></i> EDITAR EMPLEADO
+                {% endif %}
+            </h1>
         </div>
+
+        <form method="POST">
+            {{ form.hidden_tag() }}
+
+            <h4 class="mb-4 fw-bold text-uppercase border-bottom border-3 border-dark pb-2">
+                <i class="ph-bold ph-identification-badge me-2"></i>Datos Personales
+            </h4>
+
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <label class="form-label">NIF / DNI</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="ph-bold ph-identification-card"></i></span>
+                        {{ form.nif(class="form-control", placeholder="12345678A") }}
+                    </div>
+                    {% for error in form.nif.errors %}
+                        <div class="text-danger fw-bold mt-1 border border-dark p-1 bg-white d-inline-block">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="col-md-4 mb-4">
+                    <label class="form-label">Nombre</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="ph-bold ph-user"></i></span>
+                        {{ form.nombre(class="form-control", placeholder="Ej: Juan") }}
+                    </div>
+                </div>
+
+                <div class="col-md-4 mb-4">
+                    <label class="form-label">Apellidos</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="ph-bold ph-users"></i></span>
+                        {{ form.apellidos(class="form-control", placeholder="Ej: Pérez García") }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <label class="form-label">Correo Electrónico</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="ph-bold ph-envelope"></i></span>
+                        {{ form.email(class="form-control", placeholder="juan.perez@empresa.com") }}
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-4">
+                    <label class="form-label">Teléfono</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="ph-bold ph-phone"></i></span>
+                        {{ form.telef(class="form-control", placeholder="Ej: 600123456") }}
+                    </div>
+                </div>
+            </div>
+
+            <h4 class="mb-4 fw-bold text-uppercase border-bottom border-3 border-dark pb-2 mt-4">
+                <i class="ph-bold ph-briefcase me-2"></i>Datos de Acceso y Empresa
+            </h4>
+
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <label class="form-label">Rol / Permisos</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="ph-bold ph-shield-check"></i></span>
+                        {{ form.rol_id(class="form-select form-control") }}
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-4">
+                    <label class="form-label">Horario Asignado</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="ph-bold ph-clock"></i></span>
+                        {{ form.horario_id(class="form-select form-control") }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label">
+                    {% if is_new %}Contraseña Inicial{% else %}Nueva Contraseña (Opcional){% endif %}
+                </label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="ph-bold ph-lock-key"></i></span>
+                    {{ form.passw(class="form-control", placeholder="********") }}
+                </div>
+                {% if not is_new %}
+                <div class="form-text fw-bold text-dark mt-1">
+                    <i class="ph-fill ph-info"></i> Déjalo en blanco si no quieres cambiarla.
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="btn-action-group">
+                <a href="{{ url_for('empleados_list') }}" class="btn-pop btn-cancel">
+                    <i class="ph-bold ph-x"></i> Cancelar
+                </a>
+                <button type="submit" class="btn-pop btn-save">
+                    <i class="ph-bold ph-floppy-disk"></i> Guardar Empleado
+                </button>
+            </div>
+
+        </form>
     </div>
 </div>
 {% endblock %}

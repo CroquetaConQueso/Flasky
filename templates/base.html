@@ -63,9 +63,14 @@
                 <i class="ph-bold ph-gear me-1"></i> Config
             </a>
             <ul class="dropdown-menu dropdown-menu-end border-3 border-dark shadow p-0 overflow-hidden" style="border-radius: 0;">
-                <li><a class="dropdown-item py-2 fw-bold" href="{{ url_for('empresa_view') }}"><i class="ph-bold ph-buildings me-2"></i> Empresa</a></li>
+                <li><a class="dropdown-item py-2 fw-bold" href="{{ url_for('empresa_view') }}"><i class="ph-bold ph-buildings me-2"></i> Mi Empresa</a></li>
                 <li><a class="dropdown-item py-2 fw-bold" href="{{ url_for('horarios_list') }}"><i class="ph-bold ph-clock me-2"></i> Horarios</a></li>
-                <li><a class="dropdown-item py-2 fw-bold" href="{{ url_for('roles_list') }}"><i class="ph-bold ph-identification-badge me-2"></i> Roles</a></li>
+                
+                <li><hr class="dropdown-divider border-dark m-0"></li>
+                
+                <li><a class="dropdown-item py-2 fw-bold" style="background-color: #e0f7fa;" href="{{ url_for('empresas_list') }}"><i class="ph-bold ph-globe me-2"></i> Empresas (Global)</a></li>
+                <li><a class="dropdown-item py-2 fw-bold" style="background-color: #e0f7fa;" href="{{ url_for('roles_list') }}"><i class="ph-bold ph-identification-badge me-2"></i> Roles (Global)</a></li>
+                
                 <li><hr class="dropdown-divider border-dark m-0"></li>
                 <li><a class="dropdown-item py-2 fw-bold text-danger" href="{{ url_for('logout') }}"><i class="ph-bold ph-sign-out me-2"></i> Salir</a></li>
             </ul>

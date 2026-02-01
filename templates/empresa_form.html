@@ -1,58 +1,91 @@
 {% extends "base.html" %}
 
-{% block title %}{{ titulo }}{% endblock %}
+{% block title %}{{ titulo }} - RRHH Flask{% endblock %}
+
+{% block css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/empresa_form.css') }}">
+{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-  <div class="col-md-8">
-    <div class="card shadow-sm border-0">
-      <div class="card-body p-4">
-        <h1 class="h4 mb-4 text-center">{{ titulo }}</h1>
+<div class="form-container">
+    
+    <div class="form-card animate__animated animate__zoomIn">
+        
+        <div class="form-header">
+            <h1 class="form-title">
+                {% if titulo == "Nueva Empresa" %}
+                    <i class="ph-bold ph-plus-circle"></i> NUEVA EMPRESA
+                {% else %}
+                    <i class="ph-bold ph-pencil-simple"></i> EDITAR EMPRESA
+                {% endif %}
+            </h1>
+        </div>
 
-        <form method="post">
-          {{ form.hidden_tag() }}
+        <form method="POST">
+            {{ form.hidden_tag() }}
 
-          <h5 class="text-primary mb-3">Datos Generales</h5>
-          <div class="row">
-            <div class="col-md-6 mb-3">
-              {{ form.nombrecomercial.label(class="form-label") }}
-              {{ form.nombrecomercial(class="form-control", placeholder="Ej: Tech Solutions S.L.") }}
+            <div class="mb-4">
+                <label class="form-label">Nombre Comercial</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="ph-bold ph-storefront"></i></span>
+                    {{ form.nombrecomercial(class="form-control", placeholder="Ej: Tech Solutions S.L.") }}
+                </div>
+                {% for error in form.nombrecomercial.errors %}
+                    <div class="text-danger fw-bold mt-1 border border-dark p-1 bg-white d-inline-block">
+                        <i class="ph-bold ph-warning"></i> {{ error }}
+                    </div>
+                {% endfor %}
             </div>
-            <div class="col-md-6 mb-3">
-              {{ form.cif.label(class="form-label") }}
-              {{ form.cif(class="form-control", placeholder="Ej: B12345678") }}
-            </div>
-          </div>
 
-          <h5 class="text-primary mt-4 mb-3">Configuración de Fichaje</h5>
-          <div class="alert alert-light border small">
-            Introduce las coordenadas del centro de trabajo para validar los fichajes desde la App Móvil.
-          </div>
-          
-          <div class="row">
-            <div class="col-md-4 mb-3">
-              {{ form.latitud.label(class="form-label") }}
-              {{ form.latitud(class="form-control", placeholder="Latitud") }}
+            <div class="mb-4">
+                <label class="form-label">CIF / NIF</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="ph-bold ph-identification-card"></i></span>
+                    {{ form.cif(class="form-control", placeholder="Ej: B12345678") }}
+                </div>
+                {% for error in form.cif.errors %}
+                    <div class="text-danger fw-bold mt-1 border border-dark p-1 bg-white d-inline-block">{{ error }}</div>
+                {% endfor %}
             </div>
-            <div class="col-md-4 mb-3">
-              {{ form.longitud.label(class="form-label") }}
-              {{ form.longitud(class="form-control", placeholder="Longitud") }}
-            </div>
-            <div class="col-md-4 mb-3">
-              {{ form.radio.label(class="form-label") }}
-              {{ form.radio(class="form-control", placeholder="Metros") }}
-            </div>
-          </div>
 
-          <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
-            <a href="{{ url_for('empresas_list') }}" class="btn btn-outline-secondary me-md-2">
-              Cancelar
-            </a>
-            {{ form.submit(class="btn btn-primary") }}
-          </div>
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <label class="form-label">Latitud</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="ph-bold ph-map-pin"></i></span>
+                        {{ form.latitud(class="form-control", placeholder="40.416...") }}
+                    </div>
+                </div>
+                <div class="col-md-6 mb-4">
+                    <label class="form-label">Longitud</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="ph-bold ph-map-pin"></i></span>
+                        {{ form.longitud(class="form-control", placeholder="-3.703...") }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label">Radio de Fichaje (metros)</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="ph-bold ph-ruler"></i></span>
+                    {{ form.radio(class="form-control", placeholder="Ej: 50") }}
+                </div>
+                <div class="form-text fw-bold text-dark mt-1">
+                    <i class="ph-fill ph-info"></i> Distancia máxima permitida para fichar desde el móvil.
+                </div>
+            </div>
+
+            <div class="btn-action-group">
+                <a href="{{ url_for('empresas_list') }}" class="btn-pop btn-cancel">
+                    <i class="ph-bold ph-x"></i> Cancelar
+                </a>
+                <button type="submit" class="btn-pop btn-save">
+                    <i class="ph-bold ph-floppy-disk"></i> Guardar Empresa
+                </button>
+            </div>
+
         </form>
-      </div>
     </div>
-  </div>
 </div>
 {% endblock %}

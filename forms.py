@@ -16,7 +16,8 @@ from wtforms.validators import DataRequired, Length, Email, Optional
 
 # 1. LOGIN
 class LoginForm(FlaskForm):
-    nif = StringField("NIF", validators=[DataRequired(), Length(max=20)])
+    # CORRECCIÓN AQUÍ: Aumentamos a 100 caracteres para permitir Emails largos
+    nif = StringField("Identificación", validators=[DataRequired(), Length(max=100)])
     password = PasswordField("Contraseña", validators=[DataRequired()])
     empresa_id = SelectField("Empresa", coerce=int, validators=[DataRequired()])
     submit = SubmitField("Entrar")
@@ -104,7 +105,7 @@ class IncidenciaCrearForm(FlaskForm):
     
     submit = SubmitField("Registrar Incidencia")
 
-# 9. FICHAJE MANUAL (ADMIN) - ¡NUEVO!
+# 9. FICHAJE MANUAL (ADMIN)
 class FichajeManualForm(FlaskForm):
     trabajador_id = SelectField("Empleado", coerce=int, validators=[DataRequired()])
     

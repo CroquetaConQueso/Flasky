@@ -100,7 +100,7 @@
         <div class="col-lg-4">
             <a href="{{ url_for('empresa_view') }}" class="action-card d-flex flex-column justify-content-center h-100">
                 <i class="ph-bold ph-buildings action-icon"></i>
-                <div class="action-title">Sede</div>
+                <div class="action-title">Sede Actual</div>
                 <div class="action-desc">Ubicación GPS y Radio</div>
             </a>
         </div>
@@ -121,5 +121,53 @@
             </a>
         </div>
     </div> 
+
+    {% if trabajador.rol and trabajador.rol.nombre_rol|lower == 'superadministrador' %}
+    
+    <div class="mt-5 text-center">
+        <h2 class="super-zone-title">
+            <i class="ph-fill ph-siren me-2"></i> ZONA GOD MODE
+        </h2>
+    </div>
+
+    <div class="row g-4 mb-5">
+        
+        <div class="col-md-6">
+            <a href="{{ url_for('empresas_list') }}" class="radical-card radical-empresas">
+                <i class="ph-fill ph-globe-stand radical-bg-icon"></i>
+                
+                <div>
+                    <div class="radical-title">EMPRESAS<br>GLOBALES</div>
+                    <div class="radical-desc">Crear, Editar y Eliminar Sedes</div>
+                </div>
+
+                <div class="mt-4 text-end">
+                    <span class="badge bg-black text-white fs-5 border border-white border-2" style="transform: rotate(3deg);">
+                        ACCESO TOTAL <i class="ph-bold ph-arrow-right ms-2"></i>
+                    </span>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-6">
+            <a href="{{ url_for('roles_list') }}" class="radical-card radical-roles">
+                <i class="ph-fill ph-crown radical-bg-icon"></i>
+                
+                <div>
+                    <div class="radical-title">ROLES<br>DEL SISTEMA</div>
+                    <div class="radical-desc">Definir Jerarquía y Poder</div>
+                </div>
+
+                <div class="mt-4 text-end">
+                    <span class="badge bg-black text-white fs-5 border border-white border-2" style="transform: rotate(-2deg);">
+                        CONFIGURAR <i class="ph-bold ph-gear ms-2"></i>
+                    </span>
+                </div>
+            </a>
+        </div>
+
+    </div>
+    {% endif %}
+
 </div>
 {% endblock %}
