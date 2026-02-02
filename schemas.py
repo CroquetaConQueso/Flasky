@@ -53,7 +53,7 @@ class TrabajadorSchema(PlainTrabajadorSchema):
     idEmpresa = fields.Int(required=True, load_only=True)
     idRol = fields.Int(required=True, load_only=True)
     idHorario = fields.Int(load_only=True)
-    
+
     empresa = fields.Nested(PlainEmpresaSchema(), dump_only=True)
     rol = fields.Nested(PlainRolSchema(), dump_only=True)
     horario = fields.Nested(PlainHorarioSchema(), dump_only=True)
@@ -75,7 +75,7 @@ class IncidenciaSchema(Schema):
     comentario_trabajador = fields.String()
     estado = fields.String(dump_only=True)
     comentario_admin = fields.String(dump_only=True)
-    
+
     trabajador = fields.Nested(PlainTrabajadorSchema(), dump_only=True)
 
 # --- ESQUEMAS NECESARIOS PARA FICHAJES (Añadidos para evitar errores de importación) ---
@@ -90,3 +90,13 @@ class FichajeOutputSchema(Schema):
     tipo = fields.String(dump_only=True)
     latitud = fields.Float(dump_only=True)
     longitud = fields.Float(dump_only=True)
+
+class ChangePasswordSchema(Schema):
+    current_password = fields.String(required=True)
+    new_password = fields.String(required=True, validate=validate.Length(min=6))
+
+class IncidenciaCreateSchema(Schema):
+    tipo = fields.String(required=True, validate=validate.OneOf(["VACACIONES", "BAJA", "ASUNTOS_PROPIOS", "OLVIDO", "HORAS_EXTRA"]))
+    fecha_inicio = fields.Date(required=True)
+    fecha_fin = fields.Date(required=True)
+    comentario_trabajador = fields.String()

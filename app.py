@@ -26,6 +26,7 @@ from forms import (
 from resources.auth import blp as AuthBlueprint
 from resources.empresa import blp as EmpresaBlueprint
 from resources.fichaje import blp as FichajeBlueprint
+from resources.incidencia import blp as IncidenciaBlueprint
 
 # Importamos los formularios
 from forms import (
@@ -54,6 +55,7 @@ def create_app():
     api.register_blueprint(AuthBlueprint, url_prefix="/api")
     api.register_blueprint(EmpresaBlueprint, url_prefix="/api")
     api.register_blueprint(FichajeBlueprint, url_prefix="/api")
+    api.register_blueprint(IncidenciaBlueprint, url_prefix="/api")
 
     # ==========================================
     #      DECORADORES DE SEGURIDAD (BLINDADOS)
