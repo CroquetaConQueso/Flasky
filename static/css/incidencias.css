@@ -1,45 +1,163 @@
-.stamp {
+body {
+    background-color: #fffae5;
+}
+
+.btn-link {
+    background-color: #ff4757;
+    color: #fff !important;
+    text-decoration: none;
     font-weight: 900;
     text-transform: uppercase;
-    padding: 5px 15px;
-    border: 4px solid;
+    border: 3px solid #000;
+    padding: 10px 20px;
+    box-shadow: 4px 4px 0px #000;
     display: inline-block;
-    font-family: 'Courier New', monospace;
+    transition: all 0.1s;
+    letter-spacing: 1px;
+}
+
+.btn-link:hover {
+    background-color: #ff6b81;
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000;
+}
+
+.card-pop {
+    border: 4px solid #000;
+    border-radius: 0;
+    box-shadow: 8px 8px 0px #000;
+    background-color: #fff;
+    overflow: visible;
+}
+
+.card-header-pop {
+    background-color: #2ed573;
+    color: #000;
+    font-weight: 900;
+    text-transform: uppercase;
+    font-size: 1.5rem;
+    padding: 1.5rem;
+    border-bottom: 4px solid #000;
     letter-spacing: 2px;
-    opacity: 0.9;
-    /* Efecto gastado (opcional) */
-    -webkit-mask-image: url('https://s3-us-west-2.amazonaws.com/s.cdpn.io/8399/grunge.png');
-    mask-image: url('https://s3-us-west-2.amazonaws.com/s.cdpn.io/8399/grunge.png');
-    mask-size: 90%;
-    -webkit-mask-size: 90%; 
+    text-align: center;
+    position: relative;
+    top: -15px;
+    left: -15px;
+    width: calc(100% + 30px);
+    box-shadow: 5px 5px 0px rgba(0,0,0,0.2);
+    transform: rotate(-1deg);
+    margin-bottom: 1rem;
+}
+
+.card-body {
+    padding: 2rem;
+}
+
+.form-label {
+    font-weight: 900;
+    text-transform: uppercase;
+    background-color: #000;
+    color: #fff;
+    padding: 5px 10px;
+    display: inline-block;
+    transform: rotate(1deg);
+    margin-bottom: 10px;
+    box-shadow: 3px 3px 0px #ccc;
+}
+
+.form-select, .form-control {
+    border: 3px solid #000 !important;
+    border-radius: 0 !important;
+    background-color: #f1f2f6;
+    font-weight: 700;
+    font-size: 1.1rem;
+    padding: 15px;
+    color: #000;
+}
+
+.form-select:focus, .form-control:focus {
+    background-color: #7bed9f;
+    box-shadow: 5px 5px 0px #000 !important;
+    transform: translate(-2px, -2px);
+    outline: none;
+}
+
+.btn-pop-success {
+    background-color: #3742fa;
+    color: #fff;
+    font-size: 1.2rem;
+    padding: 15px;
+    border: 4px solid #000;
+    text-transform: uppercase;
+    font-weight: 900;
+    box-shadow: 6px 6px 0px #000;
+    transition: all 0.1s;
+}
+
+.btn-pop-success:hover {
+    background-color: #5352ed;
+    color: #fff;
+    transform: translate(-3px, -3px);
+    box-shadow: 9px 9px 0px #000;
+}
+
+.stamp {
+    font-family: 'Courier New', monospace;
+    font-weight: 900;
+    text-transform: uppercase;
+    padding: 10px 20px;
+    border: 4px solid #000;
+    display: inline-block;
+    background-color: #fff;
+    box-shadow: 4px 4px 0px rgba(0,0,0,0.2);
 }
 
 .stamp-approved {
-    color: #00b894; /* Verde */
-    border-color: #00b894;
-    transform: rotate(-8deg);
+    background-color: #2ed573;
+    color: #000;
+    transform: rotate(-3deg);
 }
 
 .stamp-rejected {
-    color: #d63031; /* Rojo */
-    border-color: #d63031;
-    transform: rotate(8deg);
+    background-color: #ff4757;
+    color: #fff;
+    transform: rotate(3deg);
 }
 
 .stamp-pending {
-    color: #fdcb6e; /* Amarillo */
-    border-color: #fdcb6e;
-    border-style: dashed;
-    transform: rotate(0deg);
-    background: #2d3436;
+    background-color: #ffa502;
+    color: #000;
 }
 
-/* 2. TARJETA DE TICKET */
 .ticket-card {
-    border-left: 10px solid #000 !important;
-    transition: transform 0.2s ease;
+    border-left: 15px solid #000 !important;
+    background-color: #f7f1e3;
 }
 
 .ticket-card:hover {
-    transform: translateX(5px);
+    background-color: #fff;
+    transform: translateX(5px) translateY(-5px);
+    box-shadow: 12px 12px 0px #000;
+}
+
+/* --- NUEVA CLASE PARA EL BOTÓN GESTIONAR --- */
+.btn-pop-gestionar {
+    background-color: #FFEB3B; /* Amarillo Pop */
+    color: #000 !important;
+    font-weight: 900;
+    text-transform: uppercase;
+    border: 3px solid #000;
+    padding: 8px 16px;
+    box-shadow: 4px 4px 0px #000;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.1s;
+    font-size: 0.9rem;
+}
+
+.btn-pop-gestionar:hover {
+    background-color: #ffeaa7; /* Un poco más claro al pasar el ratón */
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000;
+    color: #000 !important;
 }

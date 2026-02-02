@@ -80,7 +80,7 @@
                         </div>
 
                         <div>
-                            <a href="{{ url_for('incidencia_resolver', incidencia_id=i.id_incidencia) }}" class="btn btn-pop btn-pop-primary">
+                            <a href="{{ url_for('incidencia_resolver', incidencia_id=i.id_incidencia) }}" class="btn btn-pop btn-pop-gestionar">
                                 <i class="ph-bold ph-gavel"></i>
                                 {% if i.tipo == 'OLVIDO' %}REVISAR{% else %}GESTIONAR{% endif %}
                             </a>

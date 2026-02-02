@@ -3,7 +3,7 @@ from flask_smorest import Blueprint, abort
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import Incidencia, Trabajador
 from extensions import db
-from schemas import IncidenciaSchema, IncidenciaCreateSchema 
+from schemas import IncidenciaSchema, IncidenciaCreateSchema
 
 blp = Blueprint("incidencias", __name__, description="Gestión de Incidencias")
 
@@ -36,3 +36,10 @@ class IncidenciaList(MethodView):
             abort(500, message=f"Error al guardar incidencia: {str(e)}")
 
         return {"message": "Incidencia solicitada correctamente"}, 201
+
+    @jwt_required()
+    @blp.response(200, IncidenciaSchema(many=True))
+    def get(self):
+        """Obtener historial de incidencias del usuario"""
+        user_id = get_jwt_identity()
+        return Incidencia.query.filter_by(id_trabajador=user_id).order_by(Incidencia.fecha_solicitud.desc()).all()
