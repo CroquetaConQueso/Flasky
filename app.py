@@ -15,6 +15,18 @@ from models import Trabajador, Empresa, Rol, Horario, Dia, Franja, Incidencia, F
 
 from utils.email_sender import enviar_correo_password
 
+# Importamos TODOS los formularios (incluido el nuevo RequestPasswordForm)
+from forms import (
+    LoginForm, EmpresaForm, RolForm, TrabajadorForm, HorarioForm,
+    FranjaForm, IncidenciaAdminForm, IncidenciaCrearForm, FichajeManualForm,
+    RequestPasswordForm, ChangePasswordForm
+)
+
+
+from resources.auth import blp as AuthBlueprint
+from resources.empresa import blp as EmpresaBlueprint
+from resources.fichaje import blp as FichajeBlueprint
+
 # Importamos los formularios
 from forms import (
     LoginForm, EmpresaForm, RolForm, TrabajadorForm, HorarioForm,
@@ -198,6 +210,29 @@ def create_app():
                 return redirect(url_for("login"))
 
         return render_template("reset_password.html", form=form)
+
+    # --- CAMBIAR CONTRASEÑA (DENTRO DEL PANEL) ---
+    @app.route("/change-password", methods=["GET", "POST"])
+    def change_password():
+        # Verificamos que esté logueado
+        if not session.get("user_id"):
+            return redirect(url_for("login"))
+
+        trabajador = Trabajador.query.get(session.get("user_id"))
+        form = ChangePasswordForm()
+
+        if form.validate_on_submit():
+            # 1. Verificar que la contraseña actual es correcta
+            if trabajador.check_password(form.current_password.data):
+                # 2. Guardar la nueva
+                trabajador.set_password(form.new_password.data)
+                db.session.commit()
+                flash("¡Contraseña actualizada con éxito!", "success")
+                return redirect(url_for("panel"))
+            else:
+                flash("La contraseña actual no es correcta.", "danger")
+
+        return render_template("change_password.html", form=form)
 
     @app.get("/logout")
     def logout():

@@ -1,6 +1,7 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField, SelectField, FloatField, IntegerField, TextAreaField, DateField
-from wtforms.validators import DataRequired, Length, Optional
+# CORRECCIÓN AQUÍ: Añadido 'EqualTo' que faltaba
+from wtforms.validators import DataRequired, Length, Optional, EqualTo
 
 # --- BLOQUE ANTI-CRASH (Detecta versiones y faltas de librerías) ---
 
@@ -121,3 +122,9 @@ class RequestPasswordForm(FlaskForm):
     # Usamos StringField con validación de Email para mayor compatibilidad
     email = StringField("Correo electrónico", validators=[DataRequired(), Email(), Length(max=120)])
     submit = SubmitField("Enviar nueva contraseña")
+
+class ChangePasswordForm(FlaskForm):
+    current_password = PasswordField("Contraseña Actual", validators=[DataRequired()])
+    new_password = PasswordField("Nueva Contraseña", validators=[DataRequired(), Length(min=6, message="Mínimo 6 caracteres")])
+    confirm_password = PasswordField("Repetir Nueva", validators=[DataRequired(), EqualTo('new_password', message="Las contraseñas no coinciden")])
+    submit = SubmitField("Guardar Nueva Contraseña")
