@@ -3,6 +3,7 @@
 {% block title %}Nuevo Fichaje Manual{% endblock %}
 
 {% block css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/empresa_form.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/fichajes.css') }}">
 {% endblock %}
 
@@ -10,7 +11,7 @@
 <div class="container" style="max-width: 600px;">
 
     <div class="mb-5">
-        <a href="{{ url_for('fichajes_list') }}" class="btn btn-link text-dark fw-bold px-0">
+        <a href="{{ url_for('rrhh_web.fichajes_list') }}" class="btn btn-link text-dark fw-bold px-0">
             <i class="ph-bold ph-arrow-left"></i> VOLVER AL HISTORIAL
         </a>
     </div>

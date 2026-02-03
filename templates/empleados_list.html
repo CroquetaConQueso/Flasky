@@ -2,71 +2,78 @@
 
 {% block title %}Empleados{% endblock %}
 
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/empresas_list.css') }}">
+{% endblock %}
+
 {% block content %}
-<div class="container">
+<div class="container mt-4">
     
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-5">
         <h2 class="page-title-box">
             <i class="ph-bold ph-users"></i> Empleados
         </h2>
         
-        <a href="{{ url_for('empleado_new') }}" class="btn btn-pop btn-pop-success">
-            <i class="ph-bold ph-plus"></i> Nuevo Empleado
+        <a href="{{ url_for('rrhh_web.empleado_new') }}" class="btn btn-pop btn-pop-success px-4" style="border: 3px solid black; box-shadow: 5px 5px 0px black; font-weight: 900; background-color: #00ff9d; color: black; text-decoration: none;">
+            <i class="ph-bold ph-plus"></i> NUEVO EMPLEADO
         </a>
     </div>
 
-    <div class="table-responsive">
-        <table class="table table-pop table-hover">
-            <thead>
-                <tr>
-                    <th>NIF</th>
-                    <th>Nombre</th>
-                    <th class="d-none d-md-table-cell">Email</th> <th>Rol</th>
-                    <th class="text-center">Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for emp in empleados %}
-                <tr>
-                    <td class="fw-bold">{{ emp.nif }}</td>
-                    <td>
-                        {{ emp.nombre }} {{ emp.apellidos }}
-                        {% if emp.rol.nombre_rol.lower() in ['administrador', 'superadministrador'] %}
-                            <i class="ph-fill ph-crown text-warning ms-1" title="Administrador"></i>
-                        {% endif %}
-                    </td>
-                    <td class="d-none d-md-table-cell">{{ emp.email }}</td>
-                    <td>
-                        <span class="badge" style="background: #000; color: #fff; border: 1px solid black;">
-                            {{ emp.rol.nombre_rol }}
-                        </span>
-                    </td>
-                    <td class="text-center">
-                        <div class="btn-group" role="group">
-                            <a href="{{ url_for('empleado_edit', emp_id=emp.id_trabajador) }}" 
-                               class="btn btn-pop btn-pop-sm btn-pop-warning me-2">
-                                <i class="ph-bold ph-pencil-simple"></i>
-                            </a>
-                            
-                            <form action="{{ url_for('empleado_delete', emp_id=emp.id_trabajador) }}" method="POST" class="d-inline"
-                                  onsubmit="return confirm('¿Seguro que quieres eliminar a {{ emp.nombre }}?');">
-                                <button type="submit" class="btn btn-pop btn-pop-sm btn-pop-danger">
-                                    <i class="ph-bold ph-trash"></i>
-                                </button>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="5" class="text-center py-5">
-                        <i class="ph-duotone ph-ghost" style="font-size: 3rem; color: #ccc;"></i>
-                        <p class="mt-2 text-muted fw-bold">No hay empleados registrados.</p>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="table-pop-card overflow-hidden">
+        <div class="table-responsive">
+            <table class="table table-pop mb-0">
+                <thead>
+                    <tr>
+                        <th>NIF</th>
+                        <th>Nombre</th>
+                        <th class="d-none d-md-table-cell">Email</th> 
+                        <th>Rol</th>
+                        <th class="text-end">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for emp in empleados %}
+                    <tr>
+                        <td class="fw-bold font-monospace">{{ emp.nif }}</td>
+                        <td>
+                            {{ emp.nombre }} {{ emp.apellidos }}
+                            {% if emp.rol.nombre_rol.lower() in ['administrador', 'superadministrador'] %}
+                                <i class="ph-fill ph-crown text-warning ms-1" style="-webkit-text-stroke: 1px black;" title="Admin"></i>
+                            {% endif %}
+                        </td>
+                        <td class="d-none d-md-table-cell small">{{ emp.email }}</td>
+                        <td>
+                            <span class="badge badge-pop badge-pop-info">
+                                {{ emp.rol.nombre_rol }}
+                            </span>
+                        </td>
+                        <td class="text-end">
+                            <div class="btn-group" role="group">
+                                <a href="{{ url_for('rrhh_web.empleado_edit', emp_id=emp.id_trabajador) }}" 
+                                   class="btn btn-sm btn-sm-pop btn-icon-edit me-2">
+                                    <i class="ph-bold ph-pencil"></i>
+                                </a>
+                                
+                                <form action="{{ url_for('rrhh_web.empleado_delete', emp_id=emp.id_trabajador) }}" method="POST" class="d-inline"
+                                      onsubmit="return confirm('¿Seguro que quieres eliminar a {{ emp.nombre }}?');">
+                                    <button type="submit" class="btn btn-sm btn-sm-pop btn-icon-delete">
+                                        <i class="ph-bold ph-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center py-5">
+                            <i class="ph-duotone ph-ghost" style="font-size: 3rem; color: #ccc;"></i>
+                            <p class="mt-2 text-muted fw-bold">No hay empleados registrados.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 {% endblock %}

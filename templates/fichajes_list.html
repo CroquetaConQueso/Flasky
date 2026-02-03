@@ -15,7 +15,7 @@
         </h2>
         
         <div class="d-flex gap-3 align-items-center">
-            <a href="{{ url_for('fichaje_nuevo') }}" class="btn btn-pop btn-pop-primary d-none d-md-inline-block">
+            <a href="{{ url_for('rrhh_web.fichaje_nuevo') }}" class="btn btn-pop btn-pop-primary d-none d-md-inline-block">
                 <i class="ph-bold ph-plus"></i> NUEVO FICHAJE
             </a>
         </div>
@@ -23,7 +23,7 @@
 
     <div class="card card-pop mb-4" style="background-color: #fff;">
         <div class="card-body p-4">
-            <form method="GET" action="{{ url_for('fichajes_list') }}" class="row g-3 align-items-end">
+            <form method="GET" action="{{ url_for('rrhh_web.fichajes_list') }}" class="row g-3 align-items-end">
                 
                 <div class="col-md-4">
                     <label class="fw-black small text-uppercase mb-2"><i class="ph-bold ph-user"></i> Empleado</label>
@@ -48,7 +48,7 @@
                     </button>
                     
                     {% if filtro_empleado or filtro_fecha %}
-                        <a href="{{ url_for('fichajes_list') }}" class="btn btn-outline-dark border-3 border-dark fw-bold" title="Limpiar filtros" style="box-shadow: 4px 4px 0px #000;">
+                        <a href="{{ url_for('rrhh_web.fichajes_list') }}" class="btn btn-outline-dark border-3 border-dark fw-bold" title="Limpiar filtros" style="box-shadow: 4px 4px 0px #000;">
                             <i class="ph-bold ph-broom fs-4"></i>
                         </a>
                     {% endif %}
@@ -187,7 +187,7 @@
         </div>
     {% endif %}
     
-    <a href="{{ url_for('fichaje_nuevo') }}" class="btn btn-pop btn-pop-primary d-md-none position-fixed bottom-0 end-0 m-4 shadow-lg" style="z-index: 1000; border-radius: 50%; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center;">
+    <a href="{{ url_for('rrhh_web.fichaje_nuevo') }}" class="btn btn-pop btn-pop-primary d-md-none position-fixed bottom-0 end-0 m-4 shadow-lg" style="z-index: 1000; border-radius: 50%; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center;">
         <i class="ph-bold ph-plus fs-3"></i>
     </a>
 </div>

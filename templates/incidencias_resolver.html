@@ -10,12 +10,13 @@
 <div class="container" style="max-width: 700px;">
 
     <div class="mb-4">
-        <a href="{{ url_for('incidencias_list') }}" class="btn btn-link text-dark fw-bold px-0">
+        <a href="{{ url_for('rrhh_web.incidencias_list') }}" class="btn btn-link text-dark fw-bold px-0">
             <i class="ph-bold ph-arrow-left"></i> Volver al listado
         </a>
     </div>
 
-    <div class="card card-pop mb-4" style="background-color: #fffdf0;"> <div class="card-body p-4">
+    <div class="card card-pop mb-4" style="background-color: #fffdf0;"> 
+        <div class="card-body p-4">
             <h5 class="fw-black text-uppercase border-bottom border-3 border-dark pb-2 mb-3">
                 <i class="ph-bold ph-user"></i> Datos del Solicitante
             </h5>
@@ -55,7 +56,7 @@
                 </div>
 
                 <div class="d-grid">
-                    <button type="submit" class="btn btn-pop btn-pop-success py-3">
+                    <button type="submit" class="btn btn-pop-success py-3">
                         <i class="ph-bold ph-floppy-disk"></i> GUARDAR RESOLUCIÓN
                     </button>
                 </div>

@@ -4,14 +4,14 @@
 
 {% block css %}
 <style>
-    /* Estilo específico para la etiqueta inclinada de esta página */
+    /* Estilo específico para la etiqueta inclinada de esta página porque si no, no sale correctamente*/
     .sticker-label {
         background: #ffde59; /* Amarillo Pop */
         border: 3px solid #000;
         padding: 6px 18px;
         font-weight: 900;
         display: inline-block;
-        transform: rotate(-2deg); /* Inclinación característica */
+        transform: rotate(-2deg);
         margin-bottom: -15px; /* Para que se monte sobre la tarjeta */
         position: relative;
         z-index: 5;
@@ -41,7 +41,7 @@
                 {{ form.hidden_tag() }}
                 
                 <div class="mb-4">
-                    <label class="form-label">Nombre del Rol</label>
+                    <label class="form-label fw-bold">Nombre del Rol</label>
                     {{ form.nombre_rol(class="form-control", placeholder="Ej: Administrador, Operario...", autofocus=true) }}
                     
                     {% for error in form.nombre_rol.errors %}

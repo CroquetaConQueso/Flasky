@@ -2,81 +2,89 @@
 
 {% block title %}Gestionar Franjas{% endblock %}
 
+{% block css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/horarios.css') }}">
+{% endblock %}
+
 {% block content %}
-<div class="container">
+<div class="container horario-container">
     
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
         <div>
-            <a href="{{ url_for('horarios_list') }}" class="btn btn-pop btn-pop-sm btn-pop-primary mb-2">
+            <a href="{{ url_for('rrhh_web.horarios_list') }}" class="btn btn-pop btn-pop-sm btn-pop-primary mb-2">
                 <i class="ph-bold ph-arrow-left"></i> Volver a Horarios
             </a>
-            <h2 class="page-title-box mt-2">
-                <i class="ph-bold ph-clock-afternoon"></i> Franjas: <span class="text-primary">{{ horario.nombre_horario }}</span>
+            <h2 class="page-title-box mt-2" style="background:#000; color:#fff; padding:5px 15px; transform:rotate(-1deg); display:inline-block; font-weight:900;">
+                <i class="ph-bold ph-clock-afternoon"></i> Franjas: <span style="color:#ffde59;">{{ horario.nombre_horario }}</span>
             </h2>
         </div>
         
         <button type="button" class="btn btn-pop btn-pop-success py-3" data-bs-toggle="collapse" data-bs-target="#collapseNuevaFranja">
-            <i class="ph-bold ph-plus-circle"></i> Añadir Franja
+            <i class="ph-bold ph-plus-circle"></i> AÑADIR FRANJA
         </button>
     </div>
 
     <div class="row g-4">
+        
         <div class="col-lg-4">
-            <div class="card card-pop">
-                <div class="card-header-pop" style="background-color: #ff4d6d; color: white;">
+            <div class="card-pop p-0 overflow-hidden">
+                <div class="card-header-pop header-pink">
                     <i class="ph-bold ph-calendar-check"></i> Días Laborables
                 </div>
-                <div class="card-body p-4">
-                    <form action="{{ url_for('horario_update_dias', horario_id=horario.id_horario) }}" method="POST">
+                <div class="p-4">
+                    <form action="{{ url_for('rrhh_web.horario_update_dias', horario_id=horario.id_horario) }}" method="POST">
                         <div class="d-flex flex-column gap-3">
-                            {% set dias = [('lunes','L'), ('martes','M'), ('miercoles','X'), ('jueves','J'), ('viernes','V'), ('sabado','S'), ('domingo','D')] %}
+                            {% set dias_semana = [('lunes','L'), ('martes','M'), ('miercoles','X'), ('jueves','J'), ('viernes','V'), ('sabado','S'), ('domingo','D')] %}
                             <div class="d-flex justify-content-between flex-wrap gap-2">
-                                {% for campo, letra in dias %}
+                                {% for campo, letra in dias_semana %}
                                 <div class="text-center">
-                                    <label class="form-label d-block small mb-1">{{ letra }}</label>
-                                    <div class="form-check form-switch d-inline-block">
-                                        <input class="form-check-input" type="checkbox" name="{{ campo }}" 
-                                               style="width: 2.5em; height: 1.25em; border: 2px solid #000;"
-                                               {% if horario[campo] %}checked{% endif %}>
+                                    <label class="form-label d-block small mb-1 fw-bold">{{ letra }}</label>
+                                    <div class="form-check form-switch d-inline-block ps-0">
+                                        <input class="form-check-input ms-0" type="checkbox" name="{{ campo }}" 
+                                               {% if horario|attr(campo) %}checked{% endif %}>
                                     </div>
                                 </div>
                                 {% endfor %}
                             </div>
-                            
                             <button type="submit" class="btn btn-pop btn-pop-danger w-100 mt-3">
-                                <i class="ph-bold ph-floppy-disk"></i> Guardar Días
+                                <i class="ph-bold ph-floppy-disk"></i> GUARDAR DÍAS
                             </button>
                         </div>
                     </form>
                 </div>
             </div>
 
-            <div class="card card-pop mt-4">
-                <div class="card-header-pop" style="background-color: #ffde59;">
-                    <i class="ph-bold ph-timer"></i> Tiempos de Trabajo
+            <div class="card-pop mt-4 p-0 overflow-hidden">
+                <div class="card-header-pop header-yellow">
+                    <i class="ph-bold ph-timer"></i> Resumen
                 </div>
-                <div class="table-responsive">
-                    <table class="table mb-0" style="border: none;">
-                        <tbody class="fw-bold">
-                            <tr>
-                                <td class="ps-4">Franjas totales:</td>
-                                <td class="text-end pe-4">{{ franjas|length }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div class="p-4 text-center">
+                    <span class="d-block text-uppercase fw-bold small text-muted">Total Franjas</span>
+                    <span class="text-big-number">{{ franjas|length }}</span>
                 </div>
             </div>
         </div>
 
         <div class="col-lg-8">
+            
             <div class="collapse mb-4" id="collapseNuevaFranja">
-                <div class="card card-pop" style="border-style: dashed;">
-                    <div class="card-header-pop bg-success text-white">
+                <div class="card-pop p-0 overflow-hidden" style="border-style: dashed;">
+                    <div class="card-header-pop header-green">
                         <i class="ph-bold ph-plus"></i> Nueva Franja Horaria
                     </div>
-                    <div class="card-body p-4">
-                        <form action="{{ url_for('horario_franjas', horario_id=horario.id_horario) }}" method="POST">
+                    <div class="p-4">
+                        <form action="{{ url_for('rrhh_web.horario_franjas', horario_id=horario.id_horario) }}" method="POST">
                             <div class="row g-3">
+                                <div class="col-12">
+                                    <label class="form-label">Día de la semana</label>
+                                    <select name="dia_id" class="form-select fw-bold border-3 border-dark" required>
+                                        <option value="" disabled selected>-- Selecciona un día --</option>
+                                        {% for d in dias %}
+                                            <option value="{{ d.id }}">{{ d.nombre|capitalize }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
                                 <div class="col-md-6">
                                     <label class="form-label">Hora Inicio</label>
                                     <input type="time" name="hora_inicio" class="form-control" required>
@@ -87,7 +95,7 @@
                                 </div>
                                 <div class="col-12 text-end">
                                     <button type="submit" class="btn btn-pop btn-pop-success">
-                                        Crear Franja
+                                        CREAR FRANJA
                                     </button>
                                 </div>
                             </div>
@@ -97,27 +105,42 @@
             </div>
 
             {% for f in franjas %}
-            <div class="card card-pop mb-3">
-                <div class="card-body p-3 d-flex justify-content-between align-items-center">
-                    <div class="d-flex align-items-center gap-4">
-                        <div class="page-title-box py-2 px-3 m-0" style="background: #000; color: #fff;">
-                            <i class="ph-bold ph-clock"></i>
-                        </div>
-                        <div>
-                            <span class="d-block small fw-bold text-muted uppercase">Horario de trabajo</span>
-                            <span class="fs-4 fw-black">{{ f.hora_inicio.strftime('%H:%M') }} — {{ f.hora_fin.strftime('%H:%M') }}</span>
-                        </div>
+            <div class="card-pop mb-3 p-3 d-flex justify-content-between align-items-center" style="box-shadow: 5px 5px 0px #000;">
+                <div class="d-flex align-items-center gap-3">
+                    <div style="background:#000; color:#fff; padding:10px; border-radius:4px; min-width: 50px; text-align: center;">
+                        <span class="fw-bold h4 m-0">{{ f.dia.nombre[:1]|upper }}</span>
                     </div>
-                    <form action="{{ url_for('franja_delete', franja_id=f.id_franja) }}" method="POST" 
-                          onsubmit="return confirm('¿Eliminar esta franja?');">
-                        <button type="submit" class="btn btn-pop btn-pop-danger btn-pop-sm">
-                            <i class="ph-bold ph-trash"></i>
-                        </button>
-                    </form>
+                    <div>
+                        <span class="d-block small fw-bold text-muted text-uppercase">{{ f.dia.nombre|capitalize }}</span>
+                        <span class="fs-4 fw-black">
+                            {% if f.hora_entrada and f.hora_salida %}
+                                {% if f.hora_entrada is string %}
+                                    {{ f.hora_entrada[:5] }}
+                                {% else %}
+                                    {{ f.hora_entrada.strftime('%H:%M') }}
+                                {% endif %}
+                                —
+                                {% if f.hora_salida is string %}
+                                    {{ f.hora_salida[:5] }}
+                                {% else %}
+                                    {{ f.hora_salida.strftime('%H:%M') }}
+                                {% endif %}
+                            {% else %}
+                                <span class="text-danger small">Error Datos</span>
+                            {% endif %}
+                        </span>
+                    </div>
                 </div>
+                
+                <form action="{{ url_for('rrhh_web.franja_delete', horario_id=horario.id_horario, dia_id=f.id_dia) }}" method="POST" 
+                      onsubmit="return confirm('¿Eliminar esta franja?');">
+                    <button type="submit" class="btn btn-pop btn-pop-danger btn-pop-sm">
+                        <i class="ph-bold ph-trash"></i>
+                    </button>
+                </form>
             </div>
             {% else %}
-            <div class="alert alert-light border-3 border-dark p-5 text-center shadow-sm">
+            <div class="alert alert-light border-3 border-dark p-5 text-center shadow-sm" style="background:#fff;">
                 <i class="ph-duotone ph-warning-circle fs-1"></i>
                 <p class="mt-3 fw-bold">No hay franjas definidas para este horario.</p>
             </div>

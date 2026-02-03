@@ -1,19 +1,16 @@
-// static/js/empresa.js
-
 document.addEventListener('DOMContentLoaded', function() {
     // 1. Capturar elementos del DOM
     var latInput = document.getElementById('latitud');
     var lngInput = document.getElementById('longitud');
     var radInput = document.getElementById('radio');
 
-    // 2. Definir valores iniciales (o por defecto: Puerta del Sol, Madrid)
+    // 2. Definir valores iniciales (o defecto: Madrid Puerta del Sol)
     var currentLat = parseFloat(latInput.value) || 40.4167; 
     var currentLng = parseFloat(lngInput.value) || -3.7032;
     var currentRad = parseFloat(radInput.value) || 100;
 
     // 3. Inicializar el mapa
-    // Usamos '15' de zoom para ver bien la zona
-    var map = L.map('map').setView([currentLat, currentLng], 15);
+    var map = L.map('map').setView([currentLat, currentLng], 16);
 
     // 4. Cargar capa de OpenStreetMap
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -25,35 +22,36 @@ document.addEventListener('DOMContentLoaded', function() {
     var circle;
 
     // 5. Función principal para dibujar/actualizar elementos
+    // 'shouldFly' es un booleano: si es true, la cámara viaja suavemente al punto
     function updateMapElements(lat, lng, rad, shouldFly) {
-        // Si ya existen, los quitamos para poner los nuevos
+        // Limpiar capas anteriores si existen
         if (marker) map.removeLayer(marker);
         if (circle) map.removeLayer(circle);
 
-        // Crear marcador
+        // Crear marcador arrastrable
         marker = L.marker([lat, lng], {draggable: true}).addTo(map);
         
-        // Añadir popup informativo
-        marker.bindPopup("<b>Sede Central</b><br>Arrastra para ajustar.").openPopup();
+        // Popup estilo Pop
+        marker.bindPopup("<b>SEDE CENTRAL</b><br>Arrastra el pin para ajustar.").openPopup();
 
-        // Crear círculo de radio (ZONA DE FICHAJE)
-        // COLORES ACTUALIZADOS: Tema Dark Red/Orange
+        // Crear círculo de radio (Estilo POP: Borde Negro + Relleno Rosa)
         circle = L.circle([lat, lng], {
-            color: '#FF4B2B',      // Naranja Fuerte (Borde)
-            fillColor: '#FF416C',  // Rojo Rosado (Relleno)
-            fillOpacity: 0.25,
+            color: '#000000',      // Borde Negro Puro (Neo-Brutalism)
+            fillColor: '#ff4d6d',  // Rosa Pop (Relleno)
+            fillOpacity: 0.3,
+            weight: 3,             // Borde grueso
             radius: rad
         }).addTo(map);
 
-        // Animación suave al centrar (solo si se pide explícitamente, ej: al hacer clic)
+        // Animación suave (flyTo) - Recuperada del JS antiguo
         if (shouldFly) {
             map.flyTo([lat, lng], 16, {
                 animate: true,
-                duration: 1.5
+                duration: 1.5 // Duración del vuelo en segundos
             });
         }
 
-        // Evento: Si arrastran el marcador, actualizamos inputs y círculo
+        // Evento: Al arrastrar el marcador manualmente
         marker.on('dragend', function(event) {
             var position = marker.getLatLng();
             updateInputs(position.lat, position.lng);
@@ -62,35 +60,34 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // 6. Función para actualizar las cajas de texto
+    // 6. Función para actualizar los inputs con EFECTO VISUAL
     function updateInputs(lat, lng) {
         latInput.value = lat.toFixed(6);
         lngInput.value = lng.toFixed(6);
 
-        // Efecto visual: parpadeo suave para indicar cambio
-        // Usamos un color oscuro rojizo suave para el parpadeo
-        latInput.style.backgroundColor = "#3d2b2b"; 
-        lngInput.style.backgroundColor = "#3d2b2b";
+        // Efecto visual: Parpadeo Amarillo Suave (Estilo Pop)
+        // Esto sustituye al parpadeo rojo oscuro del código antiguo
+        latInput.style.backgroundColor = "#fff9c4"; 
+        lngInput.style.backgroundColor = "#fff9c4";
         
         setTimeout(() => {
-            // RESTAURAR AL COLOR DEL CSS (Importante para Dark Mode)
-            // Al poner "", el navegador vuelve a usar el color definido en tu archivo .css
+            // Restaurar al color original definido en el CSS
             latInput.style.backgroundColor = ""; 
             lngInput.style.backgroundColor = "";
         }, 300);
     }
 
-    // 7. Dibujar estado inicial (sin animación de vuelo)
+    // 7. Dibujar estado inicial (sin animación de vuelo al cargar)
     updateMapElements(currentLat, currentLng, currentRad, false);
 
     // 8. Evento: CLIC EN EL MAPA
     map.on('click', function(e) {
         updateInputs(e.latlng.lat, e.latlng.lng);
-        // Al hacer clic lejos, sí queremos animación (flyTo)
+        // Aquí SÍ activamos la animación 'shouldFly = true'
         updateMapElements(e.latlng.lat, e.latlng.lng, parseFloat(radInput.value) || 100, true);
     });
 
-    // 9. Evento: CAMBIO EN EL RADIO (input manual)
+    // 9. Evento: CAMBIO MANUAL EN EL RADIO
     if(radInput){
         radInput.addEventListener('input', function() {
             var newRad = parseFloat(this.value) || 0;

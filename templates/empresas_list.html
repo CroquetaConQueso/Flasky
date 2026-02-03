@@ -1,60 +1,65 @@
 {% extends "base.html" %}
 
-{% block title %}Empresas{% endblock %}
+{% block title %}Listado de Empresas{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/empresas_list.css') }}">
+{% endblock %}
 
 {% block content %}
-<div class="container">
-    
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-5">
         <h2 class="page-title-box">
-            <i class="ph-bold ph-buildings"></i> Empresas
+            <i class="ph-bold ph-globe"></i> Empresas Globales
         </h2>
-        <a href="{{ url_for('empresa_new') }}" class="btn btn-pop btn-pop-success">
-            <i class="ph-bold ph-plus"></i> Nueva Empresa
+        <a href="{{ url_for('super_web.empresa_new') }}" class="btn btn-pop btn-pop-success px-4" style="border: 3px solid black; box-shadow: 5px 5px 0px black; font-weight: 900;">
+            <i class="ph-bold ph-plus"></i> NUEVA EMPRESA
         </a>
     </div>
 
-    <div class="alert alert-light border-0 p-3 mb-4 shadow-sm" style="border: 2px solid #000 !important; background-color: #e0f7fa;">
-        <i class="ph-fill ph-info me-2"></i> Zona exclusiva para <strong>Superadministradores</strong>.
-    </div>
-
-    <div class="table-responsive">
-        <table class="table table-pop table-hover align-middle">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Nombre Comercial</th>
-                    <th>CIF</th>
-                    <th class="text-center" style="width: 150px;">Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for empresa in empresas %}
-                <tr>
-                    <td class="fw-bold">#{{ empresa.id_empresa }}</td>
-                    <td>
-                        <span class="fw-bold text-uppercase">{{ empresa.nombrecomercial }}</span>
-                    </td>
-                    <td style="font-family: monospace; font-size: 1.1rem;">{{ empresa.cif }}</td>
-                    <td class="text-center">
-                        <form action="{{ url_for('empresa_delete', empresa_id=empresa.id_empresa) }}" method="post" class="d-inline"
-                              onsubmit="return confirm('¿Seguro que quieres eliminar la empresa {{ empresa.nombrecomercial }}?');">
-                            <button type="submit" class="btn btn-pop btn-pop-sm btn-pop-danger" title="Eliminar">
-                                <i class="ph-bold ph-trash"></i> Eliminar
-                            </button>
-                        </form>
-                    </td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="4" class="text-center py-5">
-                        <i class="ph-duotone ph-building" style="font-size: 3rem; color: #ccc;"></i>
-                        <p class="mt-2 text-muted fw-bold">No hay empresas registradas.</p>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="table-pop-card overflow-hidden">
+        <div class="table-responsive">
+            <table class="table table-pop mb-0">
+                <thead>
+                    <tr>
+                        <th>Nombre Comercial</th>
+                        <th>CIF</th>
+                        <th class="text-center">Empleados</th>
+                        <th class="text-end">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for empresa in empresas %}
+                    <tr>
+                        <td>{{ empresa.nombrecomercial }}</td>
+                        <td class="font-monospace">{{ empresa.cif }}</td>
+                        <td class="text-center">
+                            <span class="badge badge-pop badge-pop-warning">
+                                {{ empresa.trabajadores|length }}
+                            </span>
+                        </td>
+                        <td class="text-end">
+                            <a href="{{ url_for('super_web.empresa_edit', empresa_id=empresa.id_empresa) }}" class="btn btn-sm btn-sm-pop btn-icon-edit me-2">
+                                <i class="ph-bold ph-pencil"></i>
+                            </a>
+                            
+                            <form action="{{ url_for('super_web.empresa_delete', empresa_id=empresa.id_empresa) }}" method="POST" class="d-inline" onsubmit="return confirm('¿Seguro que quieres eliminar esta empresa?');">
+                                <button type="submit" class="btn btn-sm btn-sm-pop btn-icon-delete">
+                                    <i class="ph-bold ph-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center p-5 text-muted fw-bold">
+                            No hay empresas registradas.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 {% endblock %}

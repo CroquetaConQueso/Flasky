@@ -14,7 +14,7 @@
             <i class="ph-bold ph-files"></i> Gestión de Incidencias
         </h2>
         
-        <a href="{{ url_for('incidencia_nueva') }}" class="btn btn-pop btn-pop-primary">
+        <a href="{{ url_for('rrhh_web.incidencia_nueva') }}" class="btn btn-pop-success" style="background-color: #a9def9; color: #000;">
             <i class="ph-bold ph-plus"></i> NUEVA INCIDENCIA
         </a>
     </div>
@@ -80,7 +80,7 @@
                         </div>
 
                         <div>
-                            <a href="{{ url_for('incidencia_resolver', incidencia_id=i.id_incidencia) }}" class="btn btn-pop btn-pop-gestionar">
+                            <a href="{{ url_for('rrhh_web.incidencia_resolver', incidencia_id=i.id_incidencia) }}" class="btn btn-pop-gestionar">
                                 <i class="ph-bold ph-gavel"></i>
                                 {% if i.tipo == 'OLVIDO' %}REVISAR{% else %}GESTIONAR{% endif %}
                             </a>

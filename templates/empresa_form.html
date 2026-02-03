@@ -1,91 +1,100 @@
 {% extends "base.html" %}
 
-{% block title %}{{ titulo }} - RRHH Flask{% endblock %}
+{% block title %}{{ titulo }}{% endblock %}
 
 {% block css %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/empresa_form.css') }}">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""/>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/empresa.css') }}">
 {% endblock %}
 
 {% block content %}
-<div class="form-container">
-    
-    <div class="form-card animate__animated animate__zoomIn">
-        
-        <div class="form-header">
-            <h1 class="form-title">
-                {% if titulo == "Nueva Empresa" %}
-                    <i class="ph-bold ph-plus-circle"></i> NUEVA EMPRESA
-                {% else %}
-                    <i class="ph-bold ph-pencil-simple"></i> EDITAR EMPRESA
-                {% endif %}
-            </h1>
-        </div>
-
-        <form method="POST">
-            {{ form.hidden_tag() }}
-
-            <div class="mb-4">
-                <label class="form-label">Nombre Comercial</label>
-                <div class="input-group">
-                    <span class="input-group-text"><i class="ph-bold ph-storefront"></i></span>
-                    {{ form.nombrecomercial(class="form-control", placeholder="Ej: Tech Solutions S.L.") }}
-                </div>
-                {% for error in form.nombrecomercial.errors %}
-                    <div class="text-danger fw-bold mt-1 border border-dark p-1 bg-white d-inline-block">
-                        <i class="ph-bold ph-warning"></i> {{ error }}
-                    </div>
-                {% endfor %}
-            </div>
-
-            <div class="mb-4">
-                <label class="form-label">CIF / NIF</label>
-                <div class="input-group">
-                    <span class="input-group-text"><i class="ph-bold ph-identification-card"></i></span>
-                    {{ form.cif(class="form-control", placeholder="Ej: B12345678") }}
-                </div>
-                {% for error in form.cif.errors %}
-                    <div class="text-danger fw-bold mt-1 border border-dark p-1 bg-white d-inline-block">{{ error }}</div>
-                {% endfor %}
-            </div>
-
-            <div class="row">
-                <div class="col-md-6 mb-4">
-                    <label class="form-label">Latitud</label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="ph-bold ph-map-pin"></i></span>
-                        {{ form.latitud(class="form-control", placeholder="40.416...") }}
-                    </div>
-                </div>
-                <div class="col-md-6 mb-4">
-                    <label class="form-label">Longitud</label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="ph-bold ph-map-pin"></i></span>
-                        {{ form.longitud(class="form-control", placeholder="-3.703...") }}
-                    </div>
-                </div>
-            </div>
-
-            <div class="mb-4">
-                <label class="form-label">Radio de Fichaje (metros)</label>
-                <div class="input-group">
-                    <span class="input-group-text"><i class="ph-bold ph-ruler"></i></span>
-                    {{ form.radio(class="form-control", placeholder="Ej: 50") }}
-                </div>
-                <div class="form-text fw-bold text-dark mt-1">
-                    <i class="ph-fill ph-info"></i> Distancia máxima permitida para fichar desde el móvil.
-                </div>
-            </div>
-
-            <div class="btn-action-group">
-                <a href="{{ url_for('empresas_list') }}" class="btn-pop btn-cancel">
-                    <i class="ph-bold ph-x"></i> Cancelar
-                </a>
-                <button type="submit" class="btn-pop btn-save">
-                    <i class="ph-bold ph-floppy-disk"></i> Guardar Empresa
-                </button>
-            </div>
-
-        </form>
+<div class="container mt-4">
+    <div class="mb-5">
+        <h2 class="page-title-box">
+            {% if is_new %}
+                <i class="ph-bold ph-plus-circle"></i> Nueva Empresa
+            {% else %}
+                <i class="ph-bold ph-pencil-simple"></i> Editar Empresa
+            {% endif %}
+        </h2>
     </div>
+
+    <form method="POST">
+        {{ form.hidden_tag() }}
+
+        <div class="row g-5">
+            <div class="col-lg-5">
+                <div class="sticker-label">Datos de Sede</div>
+                <div class="card card-pop pt-4">
+                    <div class="card-body p-4">
+                        <div class="mb-4">
+                            <label class="form-label">Nombre Comercial</label>
+                            {{ form.nombrecomercial(class="form-control", placeholder="Ej: Tech Solutions S.L.") }}
+                            {% for error in form.nombrecomercial.errors %}
+                                <div class="text-danger fw-bold small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">CIF</label>
+                            {{ form.cif(class="form-control", placeholder="B-12345678") }}
+                            {% for error in form.cif.errors %}
+                                <div class="text-danger fw-bold small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label text-danger">Radio Fichaje (Metros)</label>
+                            <div class="input-group">
+                                {{ form.radio(class="form-control", id="radio", type="number") }}
+                                <span class="input-group-text">MTS</span>
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mt-2">
+                            <div class="col-6">
+                                <label class="form-label small">Latitud</label>
+                                {{ form.latitud(class="form-control", id="latitud", readonly=True) }}
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small">Longitud</label>
+                                {{ form.longitud(class="form-control", id="longitud", readonly=True) }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-3 mt-4">
+                    <button type="submit" class="btn btn-pop btn-pop-success py-3 fs-5">
+                        <i class="ph-bold ph-check-circle"></i> GUARDAR
+                    </button>
+                    <a href="{{ url_for('super_web.empresas_list') }}" class="btn btn-pop btn-pop-danger">
+                        CANCELAR
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-lg-7">
+                <div class="sticker-label" style="background: #a9def9;">Selector GPS</div>
+                <div class="card card-pop pt-4">
+                    <div class="card-body p-2">
+                        <div id="map"></div>
+                    </div>
+                </div>
+                <div class="alert alert-dark border-3 border-dark mt-3 fw-bold small shadow-sm">
+                    <i class="ph-bold ph-info"></i> Usa el mapa para establecer las coordenadas automáticamente.
+                </div>
+            </div>
+        </div>
+    </form>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""></script>
+<script src="{{ url_for('static', filename='js/empresa.js') }}"></script>
 {% endblock %}

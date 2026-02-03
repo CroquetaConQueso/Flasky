@@ -74,7 +74,7 @@
     <div class="row g-4">
         
         <div class="col-lg-8">
-            <a href="{{ url_for('empleados_list') }}" class="action-card action-wide">
+            <a href="{{ url_for('rrhh_web.empleados_list') }}" class="action-card action-wide">
                 <div class="row align-items-center h-100 g-0">
                     <div class="col-md-4 text-center text-md-start">
                         <i class="ph-bold ph-users-three action-icon"></i>
@@ -90,7 +90,7 @@
         </div>
 
         <div class="col-lg-4">
-            <a href="{{ url_for('horarios_list') }}" class="action-card d-flex flex-column justify-content-center h-100">
+            <a href="{{ url_for('rrhh_web.horarios_list') }}" class="action-card d-flex flex-column justify-content-center h-100">
                 <i class="ph-bold ph-calendar-blank action-icon"></i>
                 <div class="action-title">Horarios</div>
                 <div class="action-desc">Turnos y Calendarios</div>
@@ -98,7 +98,7 @@
         </div>
 
         <div class="col-lg-4">
-            <a href="{{ url_for('empresa_view') }}" class="action-card d-flex flex-column justify-content-center h-100">
+            <a href="{{ url_for('empresa_web.empresa_view') }}" class="action-card d-flex flex-column justify-content-center h-100">
                 <i class="ph-bold ph-buildings action-icon"></i>
                 <div class="action-title">Sede Actual</div>
                 <div class="action-desc">Ubicación GPS y Radio</div>
@@ -106,7 +106,7 @@
         </div>
 
         <div class="col-lg-8">
-            <a href="{{ url_for('roles_list') }}" class="action-card action-wide">
+            <a href="{{ url_for('super_web.roles_list') }}" class="action-card action-wide">
                 <div class="row align-items-center h-100 g-0">
                     <div class="col-md-8 text-center text-md-end order-2 order-md-1">
                         <div class="action-title">Permisos y Roles</div>
@@ -133,7 +133,7 @@
     <div class="row g-4 mb-5">
         
         <div class="col-md-6">
-            <a href="{{ url_for('empresas_list') }}" class="radical-card radical-empresas">
+            <a href="{{ url_for('super_web.empresas_list') }}" class="radical-card radical-empresas">
                 <i class="ph-fill ph-globe-stand radical-bg-icon"></i>
                 
                 <div>
@@ -150,7 +150,7 @@
         </div>
 
         <div class="col-md-6">
-            <a href="{{ url_for('roles_list') }}" class="radical-card radical-roles">
+            <a href="{{ url_for('super_web.roles_list') }}" class="radical-card radical-roles">
                 <i class="ph-fill ph-crown radical-bg-icon"></i>
                 
                 <div>

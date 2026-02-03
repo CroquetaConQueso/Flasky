@@ -7,12 +7,13 @@
 {% block css %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/empresa_form.css') }}">
     <style>
-        .form-title { background-color: #a9def9 !important; }
+        .form-title { background-color: #a9def9 !important; } /* Azulito para empleados */
     </style>
 {% endblock %}
 
 {% block content %}
-<div class="form-container" style="max-width: 800px;"> <div class="form-card animate__animated animate__zoomIn">
+<div class="form-container" style="max-width: 800px;">
+    <div class="form-card animate__animated animate__zoomIn">
         
         <div class="form-header">
             <h1 class="form-title">
@@ -34,9 +35,9 @@
             <div class="row">
                 <div class="col-md-4 mb-4">
                     <label class="form-label">NIF / DNI</label>
-                    <div class="input-group">
+                    <div class="input-group" style="border: 3px solid black;">
                         <span class="input-group-text"><i class="ph-bold ph-identification-card"></i></span>
-                        {{ form.nif(class="form-control", placeholder="12345678A") }}
+                        {{ form.nif(class="form-control border-0", placeholder="12345678A") }}
                     </div>
                     {% for error in form.nif.errors %}
                         <div class="text-danger fw-bold mt-1 border border-dark p-1 bg-white d-inline-block">{{ error }}</div>
@@ -45,17 +46,17 @@
 
                 <div class="col-md-4 mb-4">
                     <label class="form-label">Nombre</label>
-                    <div class="input-group">
+                    <div class="input-group" style="border: 3px solid black;">
                         <span class="input-group-text"><i class="ph-bold ph-user"></i></span>
-                        {{ form.nombre(class="form-control", placeholder="Ej: Juan") }}
+                        {{ form.nombre(class="form-control border-0", placeholder="Ej: Juan") }}
                     </div>
                 </div>
 
                 <div class="col-md-4 mb-4">
                     <label class="form-label">Apellidos</label>
-                    <div class="input-group">
+                    <div class="input-group" style="border: 3px solid black;">
                         <span class="input-group-text"><i class="ph-bold ph-users"></i></span>
-                        {{ form.apellidos(class="form-control", placeholder="Ej: Pérez García") }}
+                        {{ form.apellidos(class="form-control border-0", placeholder="Ej: Pérez García") }}
                     </div>
                 </div>
             </div>
@@ -63,17 +64,17 @@
             <div class="row">
                 <div class="col-md-6 mb-4">
                     <label class="form-label">Correo Electrónico</label>
-                    <div class="input-group">
+                    <div class="input-group" style="border: 3px solid black;">
                         <span class="input-group-text"><i class="ph-bold ph-envelope"></i></span>
-                        {{ form.email(class="form-control", placeholder="juan.perez@empresa.com") }}
+                        {{ form.email(class="form-control border-0", placeholder="juan.perez@empresa.com") }}
                     </div>
                 </div>
 
                 <div class="col-md-6 mb-4">
                     <label class="form-label">Teléfono</label>
-                    <div class="input-group">
+                    <div class="input-group" style="border: 3px solid black;">
                         <span class="input-group-text"><i class="ph-bold ph-phone"></i></span>
-                        {{ form.telef(class="form-control", placeholder="Ej: 600123456") }}
+                        {{ form.telef(class="form-control border-0", placeholder="Ej: 600123456") }}
                     </div>
                 </div>
             </div>
@@ -85,17 +86,17 @@
             <div class="row">
                 <div class="col-md-6 mb-4">
                     <label class="form-label">Rol / Permisos</label>
-                    <div class="input-group">
+                    <div class="input-group" style="border: 3px solid black;">
                         <span class="input-group-text"><i class="ph-bold ph-shield-check"></i></span>
-                        {{ form.rol_id(class="form-select form-control") }}
+                        {{ form.rol_id(class="form-select form-control border-0") }}
                     </div>
                 </div>
 
                 <div class="col-md-6 mb-4">
                     <label class="form-label">Horario Asignado</label>
-                    <div class="input-group">
+                    <div class="input-group" style="border: 3px solid black;">
                         <span class="input-group-text"><i class="ph-bold ph-clock"></i></span>
-                        {{ form.horario_id(class="form-select form-control") }}
+                        {{ form.horario_id(class="form-select form-control border-0") }}
                     </div>
                 </div>
             </div>
@@ -104,9 +105,9 @@
                 <label class="form-label">
                     {% if is_new %}Contraseña Inicial{% else %}Nueva Contraseña (Opcional){% endif %}
                 </label>
-                <div class="input-group">
+                <div class="input-group" style="border: 3px solid black;">
                     <span class="input-group-text"><i class="ph-bold ph-lock-key"></i></span>
-                    {{ form.passw(class="form-control", placeholder="********") }}
+                    {{ form.passw(class="form-control border-0", placeholder="********") }}
                 </div>
                 {% if not is_new %}
                 <div class="form-text fw-bold text-dark mt-1">
@@ -115,13 +116,13 @@
                 {% endif %}
             </div>
 
-            <div class="btn-action-group">
-                <a href="{{ url_for('empleados_list') }}" class="btn-pop btn-cancel">
-                    <i class="ph-bold ph-x"></i> Cancelar
-                </a>
-                <button type="submit" class="btn-pop btn-save">
-                    <i class="ph-bold ph-floppy-disk"></i> Guardar Empleado
+            <div class="d-grid gap-3 mt-4">
+                <button type="submit" class="btn btn-pop btn-pop-success py-3 fs-5">
+                    <i class="ph-bold ph-floppy-disk"></i> GUARDAR EMPLEADO
                 </button>
+                <a href="{{ url_for('rrhh_web.empleados_list') }}" class="btn btn-pop btn-pop-danger">
+                    <i class="ph-bold ph-x me-2"></i> CANCELAR
+                </a>
             </div>
 
         </form>

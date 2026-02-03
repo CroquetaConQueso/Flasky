@@ -1,17 +1,72 @@
 {% extends "base.html" %}
 
-{% block title %}Inicio RRHH{% endblock %}
+{% block title %}Inicio - RRHH Pop{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-  <div class="col-md-8">
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <h1 class="h4 mb-3">Proyecto Recursos Humanos</h1>
-        <p class="mb-3">Aplicación Flask desplegada en PythonAnywhere con MySQL.</p>
-        <a href="{{ url_for('login') }}" class="btn btn-primary">Entrar</a>
-      </div>
+
+<div class="row justify-content-center mt-4">
+    <div class="col-lg-10">
+        <div class="hero-section text-center">
+            <div style="position: absolute; top: -20px; right: -20px; background: #ff4757; color: white; padding: 10px 20px; border: 3px solid black; font-weight: bold; transform: rotate(10deg);">
+                V 2.0 BETA
+            </div>
+
+            <h1 class="hero-title">Gestión RRHH <br>Sin Aburrimiento</h1>
+            <div class="hero-subtitle">Control de Presencia · Fichajes · Incidencias</div>
+            
+            <br>
+            
+            {% if session.get("user_id") %}
+                <a href="{{ url_for('empresa_web.panel') }}" class="btn-hero">
+                    <i class="ph-bold ph-squares-four"></i> IR AL PANEL
+                </a>
+            {% else %}
+                <a href="{{ url_for('auth_web.login') }}" class="btn-hero">
+                    <i class="ph-bold ph-sign-in"></i> ENTRAR AHORA
+                </a>
+            {% endif %}
+        </div>
     </div>
-  </div>
 </div>
+
+<div class="row g-4 mb-5">
+    <div class="col-md-4">
+        <div class="feature-card card-cyan">
+            <div class="feature-icon" style="background:#fff; color:#000;">
+                <i class="ph-bold ph-clock-user"></i>
+            </div>
+            <h3 class="fw-black text-uppercase">Fichaje Inteligente</h3>
+            <p class="fw-bold">Registro de entrada y salida con geolocalización precisa. Olvídate del papel.</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="feature-card card-pink">
+            <div class="feature-icon" style="background:#fff; color:#000;">
+                <i class="ph-bold ph-airplane-tilt"></i>
+            </div>
+            <h3 class="fw-black text-uppercase">Vacaciones</h3>
+            <p class="fw-bold">Gestión de ausencias, bajas y vacaciones con un solo clic. Rápido y visual.</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="feature-card card-green">
+            <div class="feature-icon" style="background:#fff; color:#000;">
+                <i class="ph-bold ph-chart-bar"></i>
+            </div>
+            <h3 class="fw-black text-uppercase">Control Total</h3>
+            <p class="fw-bold">Panel de administración para RRHH con estadísticas en tiempo real y mapas.</p>
+        </div>
+    </div>
+</div>
+
+<div class="text-center mt-5 mb-5">
+    <small class="fw-bold bg-white border border-2 border-dark p-2 shadow-sm">
+        © 2026 Sistema de Gestión Neo-Brutalista
+    </small>
+</div>
+
 {% endblock %}
