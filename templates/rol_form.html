@@ -4,7 +4,7 @@
 
 {% block css %}
 <style>
-    /* Estilo específico para la etiqueta inclinada de esta página porque si no, no sale correctamente*/
+    /* Estilo específico para la etiqueta inclinada de esta página */
     .sticker-label {
         background: #ffde59; /* Amarillo Pop */
         border: 3px solid #000;
@@ -26,7 +26,7 @@
 <div class="container" style="max-width: 600px;">
 
     <div class="mb-5">
-        <a href="{{ url_for('roles_list') }}" class="btn btn-link text-dark fw-bold px-0">
+        <a href="{{ url_for('super_web.roles_list') }}" class="btn btn-link text-dark fw-bold px-0">
             <i class="ph-bold ph-arrow-left"></i> VOLVER A ROLES
         </a>
     </div>
@@ -56,7 +56,7 @@
                         <i class="ph-bold ph-check-circle"></i> GUARDAR ROL
                     </button>
                     
-                    <a href="{{ url_for('roles_list') }}" class="btn btn-pop btn-pop-danger">
+                    <a href="{{ url_for('super_web.roles_list') }}" class="btn btn-pop btn-pop-danger">
                         CANCELAR
                     </a>
                 </div>

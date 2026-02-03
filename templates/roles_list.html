@@ -9,7 +9,7 @@
         <h2 class="page-title-box">
             <i class="ph-bold ph-identification-badge"></i> Roles
         </h2>
-        <a href="{{ url_for('rol_new') }}" class="btn btn-pop btn-pop-success">
+        <a href="{{ url_for('super_web.rol_new') }}" class="btn btn-pop btn-pop-success">
             <i class="ph-bold ph-plus"></i> Nuevo Rol
         </a>
     </div>
@@ -34,12 +34,12 @@
                     </td>
                     <td class="text-center">
                         <div class="btn-group" role="group">
-                            <a href="{{ url_for('rol_edit', rol_id=rol.id_rol) }}" 
+                            <a href="{{ url_for('super_web.rol_edit', rol_id=rol.id_rol) }}" 
                                class="btn btn-pop btn-pop-sm btn-pop-warning me-2" title="Editar">
                                 <i class="ph-bold ph-pencil-simple"></i>
                             </a>
                             
-                            <form action="{{ url_for('rol_delete', rol_id=rol.id_rol) }}" method="POST" class="d-inline"
+                            <form action="{{ url_for('super_web.rol_delete', rol_id=rol.id_rol) }}" method="POST" class="d-inline"
                                   onsubmit="return confirm('¿Seguro que quieres eliminar el rol {{ rol.nombre_rol }}?');">
                                 <button type="submit" class="btn btn-pop btn-pop-sm btn-pop-danger" title="Eliminar">
                                     <i class="ph-bold ph-trash"></i>
