@@ -100,3 +100,15 @@ class IncidenciaCreateSchema(Schema):
     fecha_inicio = fields.Date(required=True)
     fecha_fin = fields.Date(required=True)
     comentario_trabajador = fields.String()
+
+# --- RESUMENES DE HORAS
+
+class ResumenMensualQuerySchema(Schema):
+    mes = fields.Int(load_default=None)
+    anio = fields.Int(load_default=None)
+
+class ResumenMensualOutputSchema(Schema):
+    mes = fields.String()
+    teoricas = fields.Float()
+    trabajadas = fields.Float()
+    saldo = fields.Float()

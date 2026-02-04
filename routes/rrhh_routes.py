@@ -4,9 +4,84 @@ from forms import TrabajadorForm, HorarioForm, FichajeManualForm, IncidenciaCrea
 from utils.decorators import admin_required
 from utils.email_sender import enviar_correo_resolucion
 from extensions import db
-from datetime import datetime
+from datetime import datetime, timedelta, date, time
+import calendar
 
 rrhh_bp = Blueprint('rrhh_web', __name__)
+
+# --- HELPER: CÁLCULO DE HORAS POR RANGO ---
+def calcular_resumen_rango(empleado_id, start_date, end_date):
+    """
+    Calcula horas teóricas vs reales en un rango de fechas flexible.
+    start_date y end_date deben ser objetos datetime (o date).
+    """
+    trabajador = Trabajador.query.get(empleado_id)
+    if not trabajador or not trabajador.idHorario:
+        return None
+
+    # Asegurar que tenemos datetime para comparar con fichajes
+    if isinstance(start_date, date):
+        start_date = datetime.combine(start_date, time.min)
+    if isinstance(end_date, date):
+        end_date = datetime.combine(end_date, time.max)
+
+    # 1. Calcular Horas Teóricas (Según Horario y Franjas)
+    dias_semana = {0: 'lunes', 1: 'martes', 2: 'miercoles', 3: 'jueves', 4: 'viernes', 5: 'sabado', 6: 'domingo'}
+    horas_por_weekday = {}
+    
+    # Pre-calcular horas por día de la semana
+    for wd, nombre_dia in dias_semana.items():
+        dia_bd = Dia.query.filter_by(nombre=nombre_dia).first()
+        if dia_bd:
+            franjas = Franja.query.filter_by(id_horario=trabajador.idHorario, id_dia=dia_bd.id).all()
+            total_seconds = 0
+            for f in franjas:
+                t_in = timedelta(hours=f.hora_entrada.hour, minutes=f.hora_entrada.minute)
+                t_out = timedelta(hours=f.hora_salida.hour, minutes=f.hora_salida.minute)
+                total_seconds += (t_out - t_in).total_seconds()
+            horas_por_weekday[wd] = total_seconds
+        else:
+            horas_por_weekday[wd] = 0
+
+    # Sumar teóricas día a día dentro del rango
+    total_teorico_sec = 0
+    delta_days = (end_date - start_date).days + 1
+    
+    for i in range(delta_days):
+        current_day = start_date + timedelta(days=i)
+        wd = current_day.weekday()
+        total_teorico_sec += horas_por_weekday.get(wd, 0)
+
+    # 2. Calcular Horas Trabajadas (Reales)
+    fichajes = Fichaje.query.filter(
+        Fichaje.id_trabajador == empleado_id,
+        Fichaje.fecha_hora >= start_date,
+        Fichaje.fecha_hora <= end_date
+    ).order_by(Fichaje.fecha_hora).all()
+
+    total_trabajado_sec = 0
+    pendientes = []
+    
+    for f in fichajes:
+        if f.tipo == 'ENTRADA':
+            pendientes.append(f)
+        elif f.tipo == 'SALIDA':
+            if pendientes:
+                ent = pendientes.pop()
+                delta = (f.fecha_hora - ent.fecha_hora).total_seconds()
+                total_trabajado_sec += delta
+
+    # 3. Resultados finales
+    horas_teoricas = total_teorico_sec / 3600
+    horas_trabajadas = total_trabajado_sec / 3600
+    saldo = horas_trabajadas - horas_teoricas
+
+    return {
+        'rango': f"{start_date.strftime('%d/%m')} - {end_date.strftime('%d/%m')}",
+        'teoricas': round(horas_teoricas, 2),
+        'trabajadas': round(horas_trabajadas, 2),
+        'saldo': round(saldo, 2)
+    }
 
 # --- GESTIÓN DE EMPLEADOS ---
 
@@ -256,24 +331,32 @@ def franja_delete(horario_id, dia_id):
     flash("Franja eliminada.", "success")
     return redirect(url_for("rrhh_web.horario_franjas", horario_id=horario_id))
 
-# --- FICHAJES E INCIDENCIAS ---
+# --- FICHAJES E INCIDENCIAS (MODIFICADO RANGOS) ---
 
 @rrhh_bp.get("/fichajes")
 @admin_required
 def fichajes_list():
     empresa_id = session.get("empresa_id")
+    
+    # Recogida de filtros (RANGO DE FECHAS)
     filtro_empleado = request.args.get('empleado_id', type=int)
-    filtro_fecha = request.args.get('fecha')
+    filtro_desde = request.args.get('fecha_desde')
+    filtro_hasta = request.args.get('fecha_hasta')
 
     query = Fichaje.query.join(Trabajador).filter(Trabajador.idEmpresa == empresa_id)
 
     if filtro_empleado:
         query = query.filter(Trabajador.id_trabajador == filtro_empleado)
-    if filtro_fecha:
-        query = query.filter(db.func.date(Fichaje.fecha_hora) == filtro_fecha)
+    
+    if filtro_desde:
+        query = query.filter(db.func.date(Fichaje.fecha_hora) >= filtro_desde)
+    
+    if filtro_hasta:
+        query = query.filter(db.func.date(Fichaje.fecha_hora) <= filtro_hasta)
 
-    fichajes_raw = query.order_by(Fichaje.fecha_hora.asc()).limit(1000).all()
+    fichajes_raw = query.order_by(Fichaje.fecha_hora.asc()).limit(2000).all()
 
+    # Procesado de jornadas para la tabla
     jornadas = []
     pendientes = {}
 
@@ -322,6 +405,7 @@ def fichajes_list():
                     'fecha_ref': f.fecha_hora
                 })
 
+    # Procesar entradas activas (sin salida aún)
     for emp_id, ent in pendientes.items():
         delta = datetime.now() - ent.fecha_hora
         horas = delta.total_seconds() / 3600
@@ -341,11 +425,35 @@ def fichajes_list():
     jornadas.sort(key=lambda x: x['fecha_ref'], reverse=True)
     empleados = Trabajador.query.filter_by(idEmpresa=empresa_id).order_by(Trabajador.nombre).all()
 
+    # --- CÁLCULO DE RESUMEN POR RANGO ---
+    resumen = None
+    if filtro_empleado:
+        # Si no hay fechas, por defecto mes actual
+        if not filtro_desde or not filtro_hasta:
+            today = date.today()
+            start_date = date(today.year, today.month, 1)
+            _, num_days = calendar.monthrange(today.year, today.month)
+            end_date = date(today.year, today.month, num_days)
+        else:
+            # Parsear fechas del filtro
+            try:
+                start_date = datetime.strptime(filtro_desde, '%Y-%m-%d').date()
+                end_date = datetime.strptime(filtro_hasta, '%Y-%m-%d').date()
+            except:
+                # Fallback a hoy si error
+                start_date = date.today()
+                end_date = date.today()
+        
+        # Llamamos al helper con el rango
+        resumen = calcular_resumen_rango(filtro_empleado, start_date, end_date)
+
     return render_template("fichajes_list.html",
                            jornadas=jornadas,
                            empleados=empleados,
                            filtro_empleado=filtro_empleado,
-                           filtro_fecha=filtro_fecha)
+                           filtro_desde=filtro_desde,
+                           filtro_hasta=filtro_hasta,
+                           resumen=resumen)
 
 @rrhh_bp.route("/fichajes/nuevo", methods=["GET", "POST"])
 @admin_required
@@ -380,7 +488,7 @@ def fichaje_nuevo():
 def incidencias_list():
     empresa_id = session.get("empresa_id")
     
-    # Recogida de filtros
+    # Recogida de filtros de la URL
     filtro_empleado = request.args.get('empleado_id', type=int)
     filtro_inicio = request.args.get('fecha_inicio')
     filtro_fin = request.args.get('fecha_fin')
@@ -388,7 +496,7 @@ def incidencias_list():
     # Query base filtrada por empresa
     query = Incidencia.query.join(Trabajador).filter(Trabajador.idEmpresa == empresa_id)
 
-    # Aplicación de filtros
+    # Aplicación de filtros dinámicos
     if filtro_empleado:
         query = query.filter(Incidencia.id_trabajador == filtro_empleado)
     
@@ -400,7 +508,7 @@ def incidencias_list():
 
     incidencias = query.order_by(Incidencia.fecha_solicitud.desc()).all()
     
-    # Lista de empleados para el selector del filtro
+    # Lista de empleados para poblar el select del filtro
     empleados = Trabajador.query.filter_by(idEmpresa=empresa_id).order_by(Trabajador.nombre).all()
 
     return render_template("incidencias_list.html", 

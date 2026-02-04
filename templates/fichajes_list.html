@@ -21,14 +21,46 @@
         </div>
     </div>
 
+    {% if resumen %}
+    <div class="summary-card mb-4">
+        <div class="summary-badge">
+            <i class="ph-bold ph-calendar-check"></i> PERIODO: {{ resumen.rango }}
+        </div>
+        
+        <div class="row g-4 align-items-center mt-2 justify-content-center">
+            
+            <div class="col-md-5">
+                <div class="stat-box" style="background-color: #fff;">
+                    <span class="stat-number">{{ resumen.trabajadas }}h</span>
+                    <span class="stat-label">Total Horas Trabajadas</span>
+                </div>
+            </div>
+
+            <div class="col-md-5">
+                {% if resumen.saldo >= 0 %}
+                    <div class="stat-box bg-green-pop">
+                        <span class="stat-number">+{{ resumen.saldo }}h</span>
+                        <span class="stat-label"><i class="ph-bold ph-trend-up"></i> HORAS EXTRAS</span>
+                    </div>
+                {% else %}
+                    <div class="stat-box bg-red-pop">
+                        <span class="stat-number">{{ resumen.saldo }}h</span>
+                        <span class="stat-label"><i class="ph-bold ph-trend-down"></i> HORAS PENDIENTES</span>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <div class="card card-pop mb-4" style="background-color: #fff;">
         <div class="card-body p-4">
             <form method="GET" action="{{ url_for('rrhh_web.fichajes_list') }}" class="row g-3 align-items-end">
                 
                 <div class="col-md-4">
                     <label class="fw-black small text-uppercase mb-2"><i class="ph-bold ph-user"></i> Empleado</label>
-                    <select name="empleado_id" class="form-select filter-input-orange">
-                        <option value="">-- Todos los empleados --</option>
+                    <select name="empleado_id" class="form-select filter-input-orange" onchange="this.form.submit()">
+                        <option value="">-- Seleccionar para ver Resumen --</option>
                         {% for emp in empleados %}
                             <option value="{{ emp.id_trabajador }}" {% if filtro_empleado == emp.id_trabajador %}selected{% endif %}>
                                 {{ emp.nombre }} {{ emp.apellidos }}
@@ -37,57 +69,28 @@
                     </select>
                 </div>
 
-                <div class="col-md-3">
-                    <label class="fw-black small text-uppercase mb-2"><i class="ph-bold ph-calendar"></i> Fecha</label>
-                    <input type="date" name="fecha" class="form-control filter-input-blue" value="{{ filtro_fecha if filtro_fecha else '' }}">
+                <div class="col-md-2">
+                    <label class="fw-black small text-uppercase mb-2">Desde</label>
+                    <input type="date" name="fecha_desde" class="form-control filter-input-blue" value="{{ filtro_desde if filtro_desde else '' }}">
                 </div>
 
-                <div class="col-md-5 d-flex gap-2">
+                <div class="col-md-2">
+                    <label class="fw-black small text-uppercase mb-2">Hasta</label>
+                    <input type="date" name="fecha_hasta" class="form-control filter-input-blue" value="{{ filtro_hasta if filtro_hasta else '' }}">
+                </div>
+
+                <div class="col-md-4 d-flex gap-2">
                     <button type="submit" class="btn btn-filter-action w-100 py-2">
-                        <i class="ph-bold ph-magnifying-glass"></i> FILTRAR RESULTADOS
+                        <i class="ph-bold ph-magnifying-glass"></i> FILTRAR
                     </button>
                     
-                    {% if filtro_empleado or filtro_fecha %}
+                    {% if filtro_empleado or filtro_desde or filtro_hasta %}
                         <a href="{{ url_for('rrhh_web.fichajes_list') }}" class="btn btn-outline-dark border-3 border-dark fw-bold" title="Limpiar filtros" style="box-shadow: 4px 4px 0px #000;">
                             <i class="ph-bold ph-broom fs-4"></i>
                         </a>
                     {% endif %}
                 </div>
             </form>
-        </div>
-    </div>
-
-    <div class="d-flex flex-wrap justify-content-center gap-3 gap-md-4 mb-4 p-3" 
-         style="background-color: #f8f9fa; border: 2px dashed #000; border-radius: 8px;">
-        
-        <div class="d-flex align-items-center gap-2">
-            <div class="status-dot active"></div>
-            <span class="fw-bold small text-uppercase">Trabajando</span>
-        </div>
-
-        <div class="d-flex align-items-center gap-2">
-            <div class="status-dot closed"></div>
-            <span class="fw-bold small text-uppercase">Cerrado</span>
-        </div>
-
-        <div class="d-flex align-items-center gap-2">
-            <div class="status-dot warning"></div>
-            <i class="ph-bold ph-warning text-danger"></i>
-            <span class="fw-bold small text-uppercase">Revisar (+12h)</span>
-        </div>
-
-        <div class="d-flex align-items-center gap-2">
-            <div class="status-dot error"></div>
-            <i class="ph-bold ph-siren text-danger"></i>
-            <span class="fw-bold small text-uppercase text-danger">Error / Sin Cierre</span>
-        </div>
-
-        <div class="d-none d-md-block border-end border-2 border-dark mx-2"></div>
-
-        <div class="d-flex align-items-center gap-2">
-            <span class="time-badge time-badge-entry py-1 px-2" style="min-width: auto; font-size: 0.7rem;">ENTRADA</span>
-            <i class="ph-bold ph-arrow-right small"></i>
-            <span class="time-badge time-badge-exit py-1 px-2" style="min-width: auto; font-size: 0.7rem;">SALIDA</span>
         </div>
     </div>
 
@@ -105,10 +108,10 @@
                         <thead style="background-color: #ffde59; border-bottom: 4px solid #000;">
                             <tr>
                                 <th class="py-3 ps-4 text-uppercase">Empleado</th>
-                                <th class="py-3 text-uppercase text-center">Jornada (Inicio <i class="ph-bold ph-arrow-right mx-1"></i> Fin)</th>
+                                <th class="py-3 text-uppercase text-center">Jornada</th>
                                 <th class="py-3 text-uppercase text-center">Duración</th>
                                 <th class="py-3 text-uppercase text-center">Estado</th>
-                                <th class="py-3 text-uppercase text-center">Ubicación</th>
+                                <th class="py-3 text-uppercase text-center">Mapa</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -161,8 +164,6 @@
 
                                 <td class="text-center fw-bold font-monospace fs-5">
                                     {{ j.duracion }}
-                                    {% if j.is_long %} <i class="ph-bold ph-warning text-danger ms-1" title="Jornada > 12h"></i> {% endif %}
-                                    {% if j.is_zombie %} <i class="ph-bold ph-siren text-danger ms-1" title="Error Zombie"></i> {% endif %}
                                 </td>
 
                                 <td class="text-center">
@@ -171,9 +172,9 @@
 
                                 <td class="text-center">
                                     {% if j.entrada %}
-                                        <a href="https://www.google.com/maps/search/?api=1&query={{ j.entrada.latitud }},{{ j.entrada.longitud }}" 
-                                           target="_blank" class="btn btn-sm btn-link text-dark border-2 border-dark bg-light"
-                                           style="box-shadow: 2px 2px 0px #000; text-decoration: none;">
+                                        <a href="http://maps.google.com/maps?q={{ j.entrada.latitud }},{{ j.entrada.longitud }}" 
+                                           target="_blank" class="btn btn-sm btn-link text-dark border-2 border-dark"
+                                           style="background-color: #ffde59; box-shadow: 2px 2px 0px #000; text-decoration: none;">
                                             <i class="ph-bold ph-map-trifold fs-5"></i>
                                         </a>
                                     {% endif %}
