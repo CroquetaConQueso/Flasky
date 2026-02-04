@@ -8,13 +8,12 @@ class Empresa(db.Model):
     id_empresa = db.Column(db.Integer, primary_key=True, autoincrement=True)
     nombrecomercial = db.Column(db.String(120), nullable=False)
     cif = db.Column(db.String(20), nullable=False)
-    direccion = db.Column(db.String(200), nullable=True) # Añadido por si acaso
+    direccion = db.Column(db.String(200), nullable=True)
     latitud = db.Column(db.Float, nullable=True)
     longitud = db.Column(db.Float, nullable=True)
     radio = db.Column(db.Integer, nullable=True, default=100)
 
     trabajadores = db.relationship("Trabajador", back_populates="empresa")
-    # Relación inversa para horarios
     horarios = db.relationship("Horario", backref="empresa", lazy=True)
 
 
@@ -34,10 +33,10 @@ class Horario(db.Model):
     nombre_horario = db.Column(db.String(80), nullable=False)
     descripcion = db.Column(db.String(255))
 
-    # FK A EMPRESA (Necesario para el Seed)
+    # FK A EMPRESA
     empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id_empresa'), nullable=True)
 
-    # CHECKS DE DÍAS (Necesario para la Web)
+    # CHECKS DE DÍAS
     lunes = db.Column(db.Boolean, default=True)
     martes = db.Column(db.Boolean, default=True)
     miercoles = db.Column(db.Boolean, default=True)
@@ -84,15 +83,15 @@ class Trabajador(db.Model):
     nif = db.Column(db.String(20), nullable=False)
     nombre = db.Column(db.String(80), nullable=False)
     apellidos = db.Column(db.String(120), nullable=False)
-    passw = db.Column(db.String(255), nullable=False) # Mantenemos passw
+    passw = db.Column(db.String(255), nullable=False) 
     email = db.Column(db.String(120), nullable=False)
     telef = db.Column(db.String(30))
 
-    # --- CAMPO NUEVO PARA NOTIFICACIONES FIREBASE ---
+    # Campo para notificaciones Firebase
     fcm_token = db.Column(db.String(255), nullable=True)
 
     idEmpresa = db.Column(db.Integer, db.ForeignKey("empresa.id_empresa"), nullable=False)
-    idHorario = db.Column(db.Integer, db.ForeignKey("horario.id_horario"), nullable=True) # Nullable por seguridad
+    idHorario = db.Column(db.Integer, db.ForeignKey("horario.id_horario"), nullable=True)
     idRol = db.Column(db.Integer, db.ForeignKey("rol.id_rol"), nullable=False)
 
     empresa = db.relationship("Empresa", back_populates="trabajadores")
@@ -103,7 +102,8 @@ class Trabajador(db.Model):
     incidencias = db.relationship("Incidencia", back_populates="trabajador", cascade="all, delete-orphan")
 
     def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
+        # --- CORRECCIÓN IMPORTANTE AQUÍ ---
+        self.passw = generate_password_hash(password)
 
     def check_password(self, password):
         return check_password_hash(self.passw, password)

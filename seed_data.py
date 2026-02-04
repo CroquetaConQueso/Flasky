@@ -6,20 +6,9 @@ import calendar
 
 app = create_app()
 
-def get_or_create(model, **kwargs):
-    """Busca un registro o lo crea si no existe."""
-    instance = model.query.filter_by(**kwargs).first()
-    if instance:
-        return instance
-    instance = model(**kwargs)
-    db.session.add(instance)
-    db.session.commit()
-    return instance
-
 def init_db():
-    """Limpia y recrea la base de datos de cero."""
-    print("🗑️  Borrando base de datos...")
-    # Desactivar checks para borrar sin problemas de foreign keys
+    print("[INFO] Borrando base de datos...")
+    # Desactivar validacion de claves foraneas para limpiar todo
     db.session.execute(db.text("SET FOREIGN_KEY_CHECKS = 0"))
     db.session.commit()
     
@@ -28,18 +17,17 @@ def init_db():
     db.session.execute(db.text("SET FOREIGN_KEY_CHECKS = 1"))
     db.session.commit()
     
-    print("✨ Creando tablas nuevas...")
+    print("[INFO] Creando tablas nuevas...")
     db.create_all()
 
 with app.app_context():
-    print("[INFO] Iniciando script de semilla...")
+    print("[INFO] Iniciando carga de datos de prueba...")
     
-    # PASO 1: REINICIAR TABLAS (CRÍTICO)
-    # Esto asegura que las tablas existen antes de consultarlas
+    # 1. Reiniciar Tablas
     init_db()
 
-    # PASO 2: CREAR DATOS
-    print("🏭 Creando empresa...")
+    # 2. Crear Empresa
+    print("[INFO] Creando empresa...")
     empresa = Empresa(
         nombrecomercial="Empresa Demo",
         cif="A12345678",
@@ -50,15 +38,16 @@ with app.app_context():
     db.session.add(empresa)
     db.session.commit()
 
-    print("👮 Creando roles...")
+    # 3. Crear Roles
+    print("[INFO] Creando roles...")
     rol_admin = Rol(nombre_rol="Administrador")
     rol_super = Rol(nombre_rol="Superadministrador")
     rol_empleado = Rol(nombre_rol="Empleado")
     db.session.add_all([rol_admin, rol_super, rol_empleado])
     db.session.commit()
 
-    print("📅 Creando días...")
-    # Nombres en minúscula para coincidir con la lógica del backend
+    # 4. Crear Dias
+    print("[INFO] Creando dias...")
     nombres_dias = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"]
     dias_objs = {}
     for nombre in nombres_dias:
@@ -67,8 +56,8 @@ with app.app_context():
         dias_objs[nombre] = d
     db.session.commit()
 
-    print("⏰ Creando horario y franjas...")
-    # Horario con los nuevos campos booleanos por defecto (L-V True)
+    # 5. Crear Horario y Franjas
+    print("[INFO] Creando horario y franjas...")
     horario = Horario(
         nombre_horario="Horario General",
         descripcion="Jornada intensiva de mañanas (08:00 - 15:00)",
@@ -79,11 +68,9 @@ with app.app_context():
     db.session.add(horario)
     db.session.commit()
 
-    # Crear franjas L-V de 08:00 a 15:00
     laborables = ["lunes", "martes", "miercoles", "jueves", "viernes"]
     for dia_nombre in laborables:
-        # Recuperar el objeto Dia de la sesión actual
-        dia_obj = Dia.query.filter_by(nombre=dia_nombre).first()
+        dia_obj = dias_objs[dia_nombre] # Usamos el objeto ya creado
         franja = Franja(
             id_horario=horario.id_horario,
             id_dia=dia_obj.id,
@@ -93,7 +80,12 @@ with app.app_context():
         db.session.add(franja)
     db.session.commit()
 
-    print("👥 Creando empleados...")
+    # 6. Crear Empleados
+    print("[INFO] Creando empleados...")
+    
+    # IMPORTANTE: Pasamos passw="temp" en el constructor para cumplir la restriccion NOT NULL de la BDD.
+    # Inmediatamente despues, set_password calculara el hash correcto y lo sobrescribira.
+
     # Admin
     admin = Trabajador(
         nif="00000000A",
@@ -101,6 +93,7 @@ with app.app_context():
         apellidos="Admin",
         email="admin@example.com",
         telef="600000000",
+        passw="temp", 
         idEmpresa=empresa.id_empresa,
         idHorario=horario.id_horario,
         idRol=rol_super.id_rol
@@ -114,6 +107,7 @@ with app.app_context():
         apellidos="Modelo",
         email="juan@example.com",
         telef="600111111",
+        passw="temp",
         idEmpresa=empresa.id_empresa,
         idHorario=horario.id_horario,
         idRol=rol_empleado.id_rol
@@ -127,6 +121,7 @@ with app.app_context():
         apellidos="Trabajadora",
         email="ana@example.com",
         telef="600222222",
+        passw="temp",
         idEmpresa=empresa.id_empresa,
         idHorario=horario.id_horario,
         idRol=rol_empleado.id_rol
@@ -140,6 +135,7 @@ with app.app_context():
         apellidos="Relax",
         email="pedro@example.com",
         telef="600333333",
+        passw="temp",
         idEmpresa=empresa.id_empresa,
         idHorario=horario.id_horario,
         idRol=rol_empleado.id_rol
@@ -149,10 +145,10 @@ with app.app_context():
     db.session.add_all([admin, modelo, extra, relax])
     db.session.commit()
 
-    print("🕓 Generando fichajes mes actual...")
+    # 7. Generar Fichajes
+    print("[INFO] Generando fichajes del mes actual...")
     today = datetime.now()
     
-    # Generar fichajes desde el día 1 hasta ayer
     for day in range(1, today.day + 1):
         current_date = datetime(today.year, today.month, day)
         
@@ -170,6 +166,28 @@ with app.app_context():
         db.session.add(Fichaje(id_trabajador=relax.id_trabajador, tipo="ENTRADA", fecha_hora=current_date.replace(hour=8, minute=15), latitud=40.4, longitud=-3.7))
         db.session.add(Fichaje(id_trabajador=relax.id_trabajador, tipo="SALIDA", fecha_hora=current_date.replace(hour=14, minute=0), latitud=40.4, longitud=-3.7))
     
+    db.session.commit()
+
+    # 8. Crear Incidencias de Prueba
+    print("[INFO] Creando incidencias de prueba...")
+    inc1 = Incidencia(
+        id_trabajador=extra.id_trabajador,
+        tipo="VACACIONES",
+        fecha_inicio=today.date() + timedelta(days=5),
+        fecha_fin=today.date() + timedelta(days=10),
+        comentario_trabajador="Solicito vacaciones de verano.",
+        estado="PENDIENTE"
+    )
+    inc2 = Incidencia(
+        id_trabajador=relax.id_trabajador,
+        tipo="BAJA",
+        fecha_inicio=today.date() - timedelta(days=2),
+        fecha_fin=today.date(),
+        comentario_trabajador="Gripe fuerte.",
+        estado="APROBADA",
+        comentario_admin="Recuperate pronto."
+    )
+    db.session.add_all([inc1, inc2])
     db.session.commit()
 
     print("[SUCCESS] Datos de ejemplo cargados correctamente.")

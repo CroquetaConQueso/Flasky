@@ -5,6 +5,7 @@ from utils.decorators import admin_required
 from utils.email_sender import enviar_correo_resolucion, enviar_correo_ausencia
 from extensions import db
 from datetime import datetime, timedelta, date, time
+from utils.firebase_sender import enviar_notificacion_push
 import calendar
 
 rrhh_bp = Blueprint('rrhh_web', __name__)
@@ -661,5 +662,64 @@ def ejecutar_notificaciones_ausencia():
         flash("Todos los empleados con turno han fichado correctamente hoy.", "success")
     else:
         flash(f"Proceso finalizado: Se detectaron {detectados} ausencias y se enviaron {enviados} correos.", "warning")
+
+    return redirect(url_for('rrhh_web.fichajes_list'))
+
+
+#------------------------FIREBASE
+
+
+@rrhh_bp.post("/notificaciones/ejecutar-ausencias")
+@admin_required
+def ejecutar_notificaciones_ausencia():
+    print("--- EJECUTANDO NOTIFICACIONES (FIREBASE + EMAIL) ---")
+
+    DIAS_SEMANA = {0: "lunes", 1: "martes", 2: "miercoles", 3: "jueves", 4: "viernes", 5: "sabado", 6: "domingo"}
+    hoy = date.today()
+    nombre_dia = DIAS_SEMANA[hoy.weekday()]
+
+    dia_db = Dia.query.filter_by(nombre=nombre_dia).first()
+    if not dia_db:
+        flash(f"Error: No existe el día '{nombre_dia}' en la base de datos.", "danger")
+        return redirect(url_for('rrhh_web.fichajes_list'))
+
+    trabajadores = Trabajador.query.all()
+    detectados = 0
+    enviados_email = 0
+    enviados_push = 0
+
+    for t in trabajadores:
+        if not t.idHorario: continue
+
+        franja_hoy = Franja.query.filter_by(id_horario=t.idHorario, id_dia=dia_db.id).first()
+        if not franja_hoy: continue
+
+        fichaje = Fichaje.query.filter(
+            Fichaje.id_trabajador == t.id_trabajador,
+            Fichaje.tipo == 'ENTRADA',
+            db.func.date(Fichaje.fecha_hora) == hoy
+        ).first()
+
+        if not fichaje:
+            detectados += 1
+            print(f"Ausencia detectada: {t.nombre} {t.apellidos}")
+
+            # 1. Intentar Push al Movil (PRIORIDAD)
+            if t.fcm_token:
+                titulo = "ALERTA DE AUSENCIA"
+                cuerpo = f"Hola {t.nombre}, tienes turno hoy y no has fichado."
+                exito_push = enviar_notificacion_push(t.fcm_token, titulo, cuerpo)
+                if exito_push: enviados_push += 1
+
+            # 2. Intentar Email (RESPALDO)
+            if t.email:
+                exito_email = enviar_correo_ausencia(t.email, t.nombre)
+                if exito_email: enviados_email += 1
+
+    msg = f"Revisión completada. Ausentes: {detectados}. Push enviados: {enviados_push}. Emails: {enviados_email}."
+    if detectados == 0:
+        flash("Todos han fichado correctamente hoy.", "success")
+    else:
+        flash(msg, "warning")
 
     return redirect(url_for('rrhh_web.fichajes_list'))
