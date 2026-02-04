@@ -3,9 +3,10 @@ from models import Trabajador, Rol, Horario, Franja, Fichaje, Empresa, Incidenci
 from forms import TrabajadorForm, HorarioForm, FichajeManualForm, IncidenciaCrearForm, IncidenciaAdminForm
 from utils.decorators import admin_required
 from utils.email_sender import enviar_correo_resolucion, enviar_correo_ausencia
+# IMPORTANTE: Importamos el enviador de Firebase
+from utils.firebase_sender import enviar_notificacion_push 
 from extensions import db
 from datetime import datetime, timedelta, date, time
-from utils.firebase_sender import enviar_notificacion_push
 import calendar
 
 rrhh_bp = Blueprint('rrhh_web', __name__)
@@ -14,23 +15,19 @@ rrhh_bp = Blueprint('rrhh_web', __name__)
 def calcular_resumen_rango(empleado_id, start_date, end_date):
     """
     Calcula horas teóricas vs reales en un rango de fechas flexible.
-    start_date y end_date deben ser objetos datetime (o date).
     """
     trabajador = Trabajador.query.get(empleado_id)
     if not trabajador or not trabajador.idHorario:
         return None
 
-    # Asegurar que tenemos datetime para comparar con fichajes
     if isinstance(start_date, date):
         start_date = datetime.combine(start_date, time.min)
     if isinstance(end_date, date):
         end_date = datetime.combine(end_date, time.max)
 
-    # 1. Calcular Horas Teóricas (Según Horario y Franjas)
     dias_semana = {0: 'lunes', 1: 'martes', 2: 'miercoles', 3: 'jueves', 4: 'viernes', 5: 'sabado', 6: 'domingo'}
     horas_por_weekday = {}
 
-    # Pre-calcular horas por día de la semana
     for wd, nombre_dia in dias_semana.items():
         dia_bd = Dia.query.filter_by(nombre=nombre_dia).first()
         if dia_bd:
@@ -44,7 +41,6 @@ def calcular_resumen_rango(empleado_id, start_date, end_date):
         else:
             horas_por_weekday[wd] = 0
 
-    # Sumar teóricas día a día dentro del rango
     total_teorico_sec = 0
     delta_days = (end_date - start_date).days + 1
 
@@ -53,7 +49,6 @@ def calcular_resumen_rango(empleado_id, start_date, end_date):
         wd = current_day.weekday()
         total_teorico_sec += horas_por_weekday.get(wd, 0)
 
-    # 2. Calcular Horas Trabajadas (Reales)
     fichajes = Fichaje.query.filter(
         Fichaje.id_trabajador == empleado_id,
         Fichaje.fecha_hora >= start_date,
@@ -72,7 +67,6 @@ def calcular_resumen_rango(empleado_id, start_date, end_date):
                 delta = (f.fecha_hora - ent.fecha_hora).total_seconds()
                 total_trabajado_sec += delta
 
-    # 3. Resultados finales
     horas_teoricas = total_teorico_sec / 3600
     horas_trabajadas = total_trabajado_sec / 3600
     saldo = horas_trabajadas - horas_teoricas
@@ -339,7 +333,6 @@ def franja_delete(horario_id, dia_id):
 def fichajes_list():
     empresa_id = session.get("empresa_id")
 
-    # Recogida de filtros (RANGO DE FECHAS)
     filtro_empleado = request.args.get('empleado_id', type=int)
     filtro_desde = request.args.get('fecha_desde')
     filtro_hasta = request.args.get('fecha_hasta')
@@ -357,7 +350,6 @@ def fichajes_list():
 
     fichajes_raw = query.order_by(Fichaje.fecha_hora.asc()).limit(2000).all()
 
-    # Procesado de jornadas para la tabla
     jornadas = []
     pendientes = {}
 
@@ -406,7 +398,6 @@ def fichajes_list():
                     'fecha_ref': f.fecha_hora
                 })
 
-    # Procesar entradas activas (sin salida aún)
     for emp_id, ent in pendientes.items():
         delta = datetime.now() - ent.fecha_hora
         horas = delta.total_seconds() / 3600
@@ -426,26 +417,21 @@ def fichajes_list():
     jornadas.sort(key=lambda x: x['fecha_ref'], reverse=True)
     empleados = Trabajador.query.filter_by(idEmpresa=empresa_id).order_by(Trabajador.nombre).all()
 
-    # --- CÁLCULO DE RESUMEN POR RANGO ---
     resumen = None
     if filtro_empleado:
-        # Si no hay fechas, por defecto mes actual
         if not filtro_desde or not filtro_hasta:
             today = date.today()
             start_date = date(today.year, today.month, 1)
             _, num_days = calendar.monthrange(today.year, today.month)
             end_date = date(today.year, today.month, num_days)
         else:
-            # Parsear fechas del filtro
             try:
                 start_date = datetime.strptime(filtro_desde, '%Y-%m-%d').date()
                 end_date = datetime.strptime(filtro_hasta, '%Y-%m-%d').date()
             except:
-                # Fallback a hoy si error
                 start_date = date.today()
                 end_date = date.today()
 
-        # Llamamos al helper con el rango
         resumen = calcular_resumen_rango(filtro_empleado, start_date, end_date)
 
     return render_template("fichajes_list.html",
@@ -489,15 +475,12 @@ def fichaje_nuevo():
 def incidencias_list():
     empresa_id = session.get("empresa_id")
 
-    # Recogida de filtros de la URL
     filtro_empleado = request.args.get('empleado_id', type=int)
     filtro_inicio = request.args.get('fecha_inicio')
     filtro_fin = request.args.get('fecha_fin')
 
-    # Query base filtrada por empresa
     query = Incidencia.query.join(Trabajador).filter(Trabajador.idEmpresa == empresa_id)
 
-    # Aplicación de filtros dinámicos
     if filtro_empleado:
         query = query.filter(Incidencia.id_trabajador == filtro_empleado)
 
@@ -509,7 +492,6 @@ def incidencias_list():
 
     incidencias = query.order_by(Incidencia.fecha_solicitud.desc()).all()
 
-    # Lista de empleados para poblar el select del filtro
     empleados = Trabajador.query.filter_by(idEmpresa=empresa_id).order_by(Trabajador.nombre).all()
 
     return render_template("incidencias_list.html",
@@ -600,7 +582,6 @@ def incidencia_delete(incidencia_id):
 @admin_required
 def fichaje_delete(fichaje_id):
     fichaje = Fichaje.query.get_or_404(fichaje_id)
-    # Seguridad: Verificar que pertenece a la empresa del admin
     if fichaje.trabajador.idEmpresa != session.get("empresa_id"):
         flash("No tienes permiso para eliminar este fichaje.", "danger")
         return redirect(url_for("rrhh_web.fichajes_list"))
@@ -615,63 +596,11 @@ def fichaje_delete(fichaje_id):
 
     return redirect(url_for("rrhh_web.fichajes_list"))
 
-# --- BOTON MANUAL DE NOTIFICACIONES ---
+# --- BOTON MANUAL DE NOTIFICACIONES (CORREGIDO: FIREBASE + EMAIL) ---
 @rrhh_bp.post("/notificaciones/ejecutar-ausencias")
 @admin_required
 def ejecutar_notificaciones_ausencia():
-    """Ejecuta la comprobación de ausencias manualmente desde la web."""
-    print("--- EJECUTANDO NOTIFICACIONES MANUALMENTE ---")
-
-    # 1. Configuración de días
-    DIAS_SEMANA = {0: "lunes", 1: "martes", 2: "miercoles", 3: "jueves", 4: "viernes", 5: "sabado", 6: "domingo"}
-    hoy = date.today()
-    nombre_dia = DIAS_SEMANA[hoy.weekday()]
-
-    # 2. Buscar día en BD
-    dia_db = Dia.query.filter_by(nombre=nombre_dia).first()
-    if not dia_db:
-        flash(f"Error: No existe el día '{nombre_dia}' en la base de datos.", "danger")
-        return redirect(url_for('rrhh_web.fichajes_list'))
-
-    trabajadores = Trabajador.query.all()
-    enviados = 0
-    detectados = 0
-
-    for t in trabajadores:
-        # A. Tiene horario y trabaja hoy?
-        if not t.idHorario: continue
-
-        franja_hoy = Franja.query.filter_by(id_horario=t.idHorario, id_dia=dia_db.id).first()
-        if not franja_hoy: continue # Libra hoy
-
-        # B. Ha fichado entrada?
-        fichaje = Fichaje.query.filter(
-            Fichaje.id_trabajador == t.id_trabajador,
-            Fichaje.tipo == 'ENTRADA',
-            db.func.date(Fichaje.fecha_hora) == hoy
-        ).first()
-
-        if not fichaje:
-            detectados += 1
-            if t.email:
-                # Enviar correo real
-                exito = enviar_correo_ausencia(t.email, t.nombre)
-                if exito: enviados += 1
-
-    if detectados == 0:
-        flash("Todos los empleados con turno han fichado correctamente hoy.", "success")
-    else:
-        flash(f"Proceso finalizado: Se detectaron {detectados} ausencias y se enviaron {enviados} correos.", "warning")
-
-    return redirect(url_for('rrhh_web.fichajes_list'))
-
-
-#------------------------FIREBASE
-
-
-@rrhh_bp.post("/notificaciones/ejecutar-ausencias")
-@admin_required
-def ejecutar_notificaciones_ausencia():
+    """Ejecuta la comprobación de ausencias (Email + Firebase) manualmente."""
     print("--- EJECUTANDO NOTIFICACIONES (FIREBASE + EMAIL) ---")
 
     DIAS_SEMANA = {0: "lunes", 1: "martes", 2: "miercoles", 3: "jueves", 4: "viernes", 5: "sabado", 6: "domingo"}
@@ -689,11 +618,14 @@ def ejecutar_notificaciones_ausencia():
     enviados_push = 0
 
     for t in trabajadores:
+        # A. Tiene horario?
         if not t.idHorario: continue
 
+        # B. Trabaja hoy?
         franja_hoy = Franja.query.filter_by(id_horario=t.idHorario, id_dia=dia_db.id).first()
         if not franja_hoy: continue
 
+        # C. Ha fichado ENTRADA hoy?
         fichaje = Fichaje.query.filter(
             Fichaje.id_trabajador == t.id_trabajador,
             Fichaje.tipo == 'ENTRADA',
@@ -702,7 +634,7 @@ def ejecutar_notificaciones_ausencia():
 
         if not fichaje:
             detectados += 1
-            print(f"Ausencia detectada: {t.nombre} {t.apellidos}")
+            print(f"⚠️ Ausencia detectada: {t.nombre} {t.apellidos}")
 
             # 1. Intentar Push al Movil (PRIORIDAD)
             if t.fcm_token:
@@ -710,7 +642,7 @@ def ejecutar_notificaciones_ausencia():
                 cuerpo = f"Hola {t.nombre}, tienes turno hoy y no has fichado."
                 exito_push = enviar_notificacion_push(t.fcm_token, titulo, cuerpo)
                 if exito_push: enviados_push += 1
-
+            
             # 2. Intentar Email (RESPALDO)
             if t.email:
                 exito_email = enviar_correo_ausencia(t.email, t.nombre)

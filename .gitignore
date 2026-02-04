@@ -1,5 +1,26 @@
-venv/
+# --- Byte-compiled / optimized / DLL files ---
 __pycache__/
-*.pyc
-instance/
+*.py[cod]
+*$py.class
+
+# --- Cirtual Environments ---
+venv/
+env/
 .env
+
+# --- Database ---
+*.sqlite3
+*.db
+migrations/
+
+# --- IDE settings ---
+.idea/
+.vscode/
+
+# --- FIREBASE & SECURITY (CRÍTICO) ---
+serviceAccountKey.json
+*.pem
+*.key
+
+# --- Logs ---
+*.log
