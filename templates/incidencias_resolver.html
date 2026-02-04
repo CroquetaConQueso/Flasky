@@ -27,7 +27,15 @@
                 </div>
                 <div class="col-md-6">
                     <span class="text-muted small d-block">TIPO SOLICITUD</span>
-                    <span class="badge bg-black text-white">{{ incidencia.tipo }}</span>
+                    <span class="badge bg-black text-white p-2">
+                        {% if incidencia.tipo == 'VACACIONES' %}Vacaciones
+                        {% elif incidencia.tipo == 'BAJA' %}Baja Médica
+                        {% elif incidencia.tipo == 'ASUNTOS_PROPIOS' %}Asuntos Propios
+                        {% elif incidencia.tipo == 'OLVIDO' %}Olvido de Fichaje
+                        {% elif incidencia.tipo == 'HORAS_EXTRA' %}Horas Extra
+                        {% else %}{{ incidencia.tipo|replace('_', ' ') }}
+                        {% endif %}
+                    </span>
                 </div>
                 <div class="col-md-12 mt-3">
                     <span class="text-muted small d-block">MOTIVO / COMENTARIO</span>

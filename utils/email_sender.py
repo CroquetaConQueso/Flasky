@@ -69,7 +69,7 @@ def enviar_correo_password(destinatario, nombre_usuario, nueva_password):
         print(f"[ERROR] Fallo enviando correo password: {e}")
         return False
 
-# --- FUNCIÓN ACTUALIZADA CON FECHAS ---
+# --- FUNCIÓN ACTUALIZADA CON TRADUCCIÓN DE TEXTOS ---
 def enviar_correo_resolucion(destinatario, nombre, tipo_incidencia, estado, comentario_admin, f_inicio, f_fin):
     try:
         smtp_server = current_app.config.get('MAIL_SERVER')
@@ -83,8 +83,19 @@ def enviar_correo_resolucion(destinatario, nombre, tipo_incidencia, estado, come
         else:
             sender_display_name = "RRHH"
 
+        # DICCIONARIO DE TRADUCCIÓN (Para que no salga ASUNTOS_PROPIOS)
+        traducciones_tipo = {
+            'VACACIONES': 'Vacaciones',
+            'BAJA': 'Baja Médica',
+            'ASUNTOS_PROPIOS': 'Asuntos Propios',
+            'OLVIDO': 'Olvido de Fichaje',
+            'HORAS_EXTRA': 'Horas Extra'
+        }
+        # Si el tipo no está en la lista, quitamos guiones y capitalizamos como plan B
+        tipo_legible = traducciones_tipo.get(tipo_incidencia, tipo_incidencia.replace('_', ' ').capitalize())
+
         msg = MIMEMultipart("alternative")
-        msg["Subject"] = f"Resolucion: {tipo_incidencia} ({estado})"
+        msg["Subject"] = f"Resolucion: {tipo_legible} ({estado})"
         msg["From"] = f"{sender_display_name} <{sender_email}>"
         msg["To"] = destinatario
 
@@ -104,7 +115,7 @@ def enviar_correo_resolucion(destinatario, nombre, tipo_incidencia, estado, come
         {texto_intro}
         
         DETALLES:
-        Tipo: {tipo_incidencia}
+        Tipo: {tipo_legible}
         Desde: {f_inicio}
         Hasta: {f_fin}
         
@@ -126,7 +137,7 @@ def enviar_correo_resolucion(destinatario, nombre, tipo_incidencia, estado, come
                 <p>{texto_intro}</p>
                 
                 <div style="background-color: #eef; border: 2px solid #000; padding: 15px; margin: 15px 0;">
-                    <p style="margin: 5px 0;"><strong>TIPO:</strong> {tipo_incidencia}</p>
+                    <p style="margin: 5px 0;"><strong>TIPO:</strong> {tipo_legible}</p>
                     <p style="margin: 5px 0;"><strong>DESDE:</strong> {f_inicio}</p>
                     <p style="margin: 5px 0;"><strong>HASTA:</strong> {f_fin}</p>
                 </div>

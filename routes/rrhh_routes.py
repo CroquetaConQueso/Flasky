@@ -188,11 +188,9 @@ def horario_franjas(horario_id):
     if hasattr(horario, 'empresa_id') and horario.empresa_id != session.get("empresa_id"):
         return redirect(url_for("rrhh_web.horarios_list"))
 
-    # Cargar todos los días para el selector
     dias_disponibles = Dia.query.order_by(Dia.id).all()
 
     if request.method == "POST":
-        # Evitar conflicto con el formulario de días
         if any(dia in request.form for dia in ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"]):
              return redirect(url_for("rrhh_web.horario_franjas", horario_id=horario_id))
 
@@ -248,7 +246,6 @@ def horario_update_dias(horario_id):
 @rrhh_bp.post("/horarios/<int:horario_id>/franjas/delete/<int:dia_id>")
 @admin_required
 def franja_delete(horario_id, dia_id):
-    # Clave compuesta: dia_id + horario_id
     franja = Franja.query.get_or_404((dia_id, horario_id))
     
     if hasattr(franja.horario, 'empresa_id') and franja.horario.empresa_id != session.get("empresa_id"):
@@ -382,13 +379,36 @@ def fichaje_nuevo():
 @admin_required
 def incidencias_list():
     empresa_id = session.get("empresa_id")
-    incidencias = (
-        Incidencia.query.join(Trabajador)
-        .filter(Trabajador.idEmpresa == empresa_id)
-        .order_by(Incidencia.fecha_solicitud.desc())
-        .all()
-    )
-    return render_template("incidencias_list.html", incidencias=incidencias)
+    
+    # Recogida de filtros
+    filtro_empleado = request.args.get('empleado_id', type=int)
+    filtro_inicio = request.args.get('fecha_inicio')
+    filtro_fin = request.args.get('fecha_fin')
+
+    # Query base filtrada por empresa
+    query = Incidencia.query.join(Trabajador).filter(Trabajador.idEmpresa == empresa_id)
+
+    # Aplicación de filtros
+    if filtro_empleado:
+        query = query.filter(Incidencia.id_trabajador == filtro_empleado)
+    
+    if filtro_inicio:
+        query = query.filter(Incidencia.fecha_inicio >= filtro_inicio)
+    
+    if filtro_fin:
+        query = query.filter(Incidencia.fecha_fin <= filtro_fin)
+
+    incidencias = query.order_by(Incidencia.fecha_solicitud.desc()).all()
+    
+    # Lista de empleados para el selector del filtro
+    empleados = Trabajador.query.filter_by(idEmpresa=empresa_id).order_by(Trabajador.nombre).all()
+
+    return render_template("incidencias_list.html", 
+                           incidencias=incidencias, 
+                           empleados=empleados,
+                           filtro_empleado=filtro_empleado,
+                           filtro_inicio=filtro_inicio,
+                           filtro_fin=filtro_fin)
 
 @rrhh_bp.route("/incidencias/nueva", methods=["GET", "POST"])
 @admin_required
@@ -446,3 +466,23 @@ def incidencia_resolver(incidencia_id):
         return redirect(url_for("rrhh_web.incidencias_list"))
 
     return render_template("incidencias_resolver.html", form=form, incidencia=incidencia)
+
+@rrhh_bp.post("/incidencias/<int:incidencia_id>/eliminar")
+@admin_required
+def incidencia_delete(incidencia_id):
+    incidencia = Incidencia.query.get_or_404(incidencia_id)
+    empresa_id = session.get("empresa_id")
+
+    if incidencia.trabajador.idEmpresa != empresa_id:
+        flash("No tienes permiso para eliminar esta incidencia.", "danger")
+        return redirect(url_for("rrhh_web.incidencias_list"))
+
+    try:
+        db.session.delete(incidencia)
+        db.session.commit()
+        flash("Incidencia eliminada correctamente.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error al eliminar: {str(e)}", "danger")
+
+    return redirect(url_for("rrhh_web.incidencias_list"))

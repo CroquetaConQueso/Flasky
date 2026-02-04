@@ -1,6 +1,10 @@
+/* static/css/incidencias.css - ESTILO POP UNIFICADO Y CORREGIDO */
+
 body {
     background-color: #fffae5;
 }
+
+/* --- TUS ESTILOS ORIGINALES (Botones, Tarjetas, Inputs) --- */
 
 .btn-link {
     background-color: #ff4757;
@@ -65,10 +69,11 @@ body {
     box-shadow: 3px 3px 0px #ccc;
 }
 
+/* Inputs y Selects */
 .form-select, .form-control {
     border: 3px solid #000 !important;
     border-radius: 0 !important;
-    background-color: #f1f2f6;
+    background-color: #f1f2f6; /* Fondo gris claro */
     font-weight: 700;
     font-size: 1.1rem;
     padding: 15px;
@@ -76,12 +81,13 @@ body {
 }
 
 .form-select:focus, .form-control:focus {
-    background-color: #7bed9f;
+    background-color: #7bed9f; /* Verde suave al enfocar */
     box-shadow: 5px 5px 0px #000 !important;
     transform: translate(-2px, -2px);
     outline: none;
 }
 
+/* Botón "Nueva Incidencia" (Verde/Azul) */
 .btn-pop-success {
     background-color: #3742fa;
     color: #fff;
@@ -92,6 +98,8 @@ body {
     font-weight: 900;
     box-shadow: 6px 6px 0px #000;
     transition: all 0.1s;
+    text-decoration: none;
+    display: inline-block;
 }
 
 .btn-pop-success:hover {
@@ -101,6 +109,7 @@ body {
     box-shadow: 9px 9px 0px #000;
 }
 
+/* Sellos */
 .stamp {
     font-family: 'Courier New', monospace;
     font-weight: 900;
@@ -140,29 +149,6 @@ body {
     box-shadow: 12px 12px 0px #000;
 }
 
-/* --- NUEVA CLASE PARA EL BOTÓN GESTIONAR --- */
-.btn-pop-gestionar {
-    background-color: #FFEB3B; /* Amarillo Pop */
-    color: #000 !important;
-    font-weight: 900;
-    text-transform: uppercase;
-    border: 3px solid #000;
-    padding: 8px 16px;
-    box-shadow: 4px 4px 0px #000;
-    text-decoration: none;
-    display: inline-block;
-    transition: all 0.1s;
-    font-size: 0.9rem;
-}
-
-.btn-pop-gestionar:hover {
-    background-color: #ffeaa7; /* Un poco más claro al pasar el ratón */
-    transform: translate(-2px, -2px);
-    box-shadow: 6px 6px 0px #000;
-    color: #000 !important;
-}
-
-/* Sticker Label para formulario de creación (faltaba en tu CSS pero se usa en el HTML) */
 .sticker-label {
     background: #ffde59;
     border: 3px solid #000;
@@ -177,3 +163,98 @@ body {
     text-transform: uppercase;
     font-size: 0.9rem;
 }
+
+/* --- ESTILOS DE FILTROS Y BOTONES DE ACCIÓN (NUEVO/CORREGIDO) --- */
+
+/* Caja de filtros */
+.filter-box {
+    background-color: #e0aaff; /* Lila Pop */
+    border: 4px solid #000;
+    box-shadow: 8px 8px 0px #000;
+    padding: 20px;
+    margin-bottom: 2rem;
+    position: relative;
+    background-image: radial-gradient(#000 1px, transparent 1px);
+    background-size: 10px 10px;
+}
+
+/* Etiquetas pequeñas para los filtros */
+.filter-box .form-label {
+    font-size: 0.8rem;
+    transform: rotate(0deg);
+    margin-bottom: 5px;
+    box-shadow: 2px 2px 0px #ccc;
+}
+
+/* Inputs de Filtro (Reutilizan .form-control pero ajustamos padding si hace falta) */
+.filter-box .form-control, .filter-box .form-select {
+    padding: 10px; /* Un poco más compactos */
+    background-color: #fff; /* Fondo blanco por defecto */
+}
+
+/* Botón BUSCAR (Cian Sólido) */
+.btn-pop-info {
+    background-color: #00f2fe !important;
+    color: #000 !important;
+    border: 3px solid #000;
+    font-weight: 900;
+    box-shadow: 4px 4px 0px #000;
+    transition: all 0.1s;
+    text-transform: uppercase;
+}
+.btn-pop-info:hover {
+    background-color: #48dbfb !important;
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000;
+}
+
+/* Botón LIMPIAR / ELIMINAR (Rojo) */
+.btn-pop-danger {
+    background-color: #ff4757 !important;
+    color: #fff !important;
+    border: 3px solid #000;
+    font-weight: 900;
+    box-shadow: 4px 4px 0px #000;
+    transition: all 0.1s;
+}
+.btn-pop-danger:hover {
+    background-color: #ff6b81 !important;
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000;
+}
+
+/* Botón GESTIONAR (Naranja Vibrante) */
+.btn-pop-gestionar {
+    background-color: #ff9f43 !important; /* Naranja */
+    color: #000 !important;
+    font-weight: 900;
+    text-transform: uppercase;
+    border: 3px solid #000;
+    padding: 6px 12px;
+    box-shadow: 4px 4px 0px #000;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.1s;
+    font-size: 0.85rem;
+}
+.btn-pop-gestionar:hover {
+    background-color: #ffbe76 !important;
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000;
+    color: #000 !important;
+}
+
+/* Badges de Estado (Pequeños para tabla) */
+.badge-pop {
+    display: inline-block;
+    padding: 5px 10px;
+    font-size: 0.75rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    border: 2px solid #000;
+    box-shadow: 2px 2px 0px #000;
+}
+
+.badge-warning { background-color: #ffa502; color: #000; }
+.badge-success { background-color: #2ed573; color: #000; }
+.badge-danger  { background-color: #ff4757; color: #fff; }
