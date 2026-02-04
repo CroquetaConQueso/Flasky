@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, session,
 from models import Trabajador, Rol, Horario, Franja, Fichaje, Empresa, Incidencia, Dia
 from forms import TrabajadorForm, HorarioForm, FichajeManualForm, IncidenciaCrearForm, IncidenciaAdminForm
 from utils.decorators import admin_required
-from utils.email_sender import enviar_correo_resolucion
+from utils.email_sender import enviar_correo_resolucion, enviar_correo_ausencia
 from extensions import db
 from datetime import datetime, timedelta, date, time
 import calendar
@@ -28,7 +28,7 @@ def calcular_resumen_rango(empleado_id, start_date, end_date):
     # 1. Calcular Horas Teóricas (Según Horario y Franjas)
     dias_semana = {0: 'lunes', 1: 'martes', 2: 'miercoles', 3: 'jueves', 4: 'viernes', 5: 'sabado', 6: 'domingo'}
     horas_por_weekday = {}
-    
+
     # Pre-calcular horas por día de la semana
     for wd, nombre_dia in dias_semana.items():
         dia_bd = Dia.query.filter_by(nombre=nombre_dia).first()
@@ -46,7 +46,7 @@ def calcular_resumen_rango(empleado_id, start_date, end_date):
     # Sumar teóricas día a día dentro del rango
     total_teorico_sec = 0
     delta_days = (end_date - start_date).days + 1
-    
+
     for i in range(delta_days):
         current_day = start_date + timedelta(days=i)
         wd = current_day.weekday()
@@ -61,7 +61,7 @@ def calcular_resumen_rango(empleado_id, start_date, end_date):
 
     total_trabajado_sec = 0
     pendientes = []
-    
+
     for f in fichajes:
         if f.tipo == 'ENTRADA':
             pendientes.append(f)
@@ -98,7 +98,7 @@ def empleado_new():
     empresa_id = session.get("empresa_id")
     form = TrabajadorForm()
     form.rol_id.choices = [(r.id_rol, r.nombre_rol) for r in Rol.query.all()]
-    
+
     if hasattr(Horario, 'empresa_id'):
         form.horario_id.choices = [(h.id_horario, h.nombre_horario) for h in Horario.query.filter_by(empresa_id=empresa_id).all()]
     else:
@@ -140,7 +140,7 @@ def empleado_edit(emp_id):
 
     form = TrabajadorForm(obj=empleado)
     form.rol_id.choices = [(r.id_rol, r.nombre_rol) for r in Rol.query.all()]
-    
+
     if hasattr(Horario, 'empresa_id'):
         form.horario_id.choices = [(h.id_horario, h.nombre_horario) for h in Horario.query.filter_by(empresa_id=empresa_id).all()]
     else:
@@ -194,22 +194,22 @@ def horario_new():
     form = HorarioForm()
     if form.validate_on_submit():
         nombre = form.nombre_horario.data.strip()
-        
+
         if hasattr(Horario, 'empresa_id'):
             existe = Horario.query.filter_by(nombre_horario=nombre, empresa_id=empresa_id).first()
         else:
             existe = Horario.query.filter_by(nombre_horario=nombre).first()
-        
+
         if existe:
             flash("Ya existe un horario con ese nombre.", "danger")
         else:
             nuevo_horario = Horario(
-                nombre_horario=nombre, 
+                nombre_horario=nombre,
                 descripcion=form.descripcion.data
             )
             if hasattr(nuevo_horario, 'empresa_id'):
                 nuevo_horario.empresa_id = empresa_id
-                
+
             db.session.add(nuevo_horario)
             db.session.commit()
             flash("Horario creado.", "success")
@@ -223,7 +223,7 @@ def horario_edit(horario_id):
     if hasattr(horario, 'empresa_id') and horario.empresa_id != session.get("empresa_id"):
         flash("No tienes permiso.", "danger")
         return redirect(url_for("rrhh_web.horarios_list"))
-        
+
     form = HorarioForm(obj=horario)
     if form.validate_on_submit():
         horario.nombre_horario = form.nombre_horario.data.strip()
@@ -231,7 +231,7 @@ def horario_edit(horario_id):
         db.session.commit()
         flash("Horario actualizado.", "success")
         return redirect(url_for("rrhh_web.horarios_list"))
-        
+
     return render_template("horario_form.html", form=form, titulo="Editar Horario")
 
 @rrhh_bp.post("/horarios/<int:horario_id>/eliminar")
@@ -248,7 +248,7 @@ def horario_delete(horario_id):
             Franja.query.filter_by(id_horario=horario_id).delete()
         except:
             pass
-            
+
         db.session.delete(horario)
         db.session.commit()
         flash("Horario eliminado.", "success")
@@ -281,7 +281,7 @@ def horario_franjas(horario_id):
                 else:
                     nueva = Franja(
                         id_horario=horario_id,
-                        id_dia=int(dia_seleccionado), 
+                        id_dia=int(dia_seleccionado),
                         hora_entrada=datetime.strptime(h_inicio, "%H:%M").time(),
                         hora_salida=datetime.strptime(h_fin, "%H:%M").time()
                     )
@@ -322,7 +322,7 @@ def horario_update_dias(horario_id):
 @admin_required
 def franja_delete(horario_id, dia_id):
     franja = Franja.query.get_or_404((dia_id, horario_id))
-    
+
     if hasattr(franja.horario, 'empresa_id') and franja.horario.empresa_id != session.get("empresa_id"):
         return redirect(url_for("rrhh_web.horarios_list"))
 
@@ -337,7 +337,7 @@ def franja_delete(horario_id, dia_id):
 @admin_required
 def fichajes_list():
     empresa_id = session.get("empresa_id")
-    
+
     # Recogida de filtros (RANGO DE FECHAS)
     filtro_empleado = request.args.get('empleado_id', type=int)
     filtro_desde = request.args.get('fecha_desde')
@@ -347,10 +347,10 @@ def fichajes_list():
 
     if filtro_empleado:
         query = query.filter(Trabajador.id_trabajador == filtro_empleado)
-    
+
     if filtro_desde:
         query = query.filter(db.func.date(Fichaje.fecha_hora) >= filtro_desde)
-    
+
     if filtro_hasta:
         query = query.filter(db.func.date(Fichaje.fecha_hora) <= filtro_hasta)
 
@@ -443,7 +443,7 @@ def fichajes_list():
                 # Fallback a hoy si error
                 start_date = date.today()
                 end_date = date.today()
-        
+
         # Llamamos al helper con el rango
         resumen = calcular_resumen_rango(filtro_empleado, start_date, end_date)
 
@@ -487,7 +487,7 @@ def fichaje_nuevo():
 @admin_required
 def incidencias_list():
     empresa_id = session.get("empresa_id")
-    
+
     # Recogida de filtros de la URL
     filtro_empleado = request.args.get('empleado_id', type=int)
     filtro_inicio = request.args.get('fecha_inicio')
@@ -499,20 +499,20 @@ def incidencias_list():
     # Aplicación de filtros dinámicos
     if filtro_empleado:
         query = query.filter(Incidencia.id_trabajador == filtro_empleado)
-    
+
     if filtro_inicio:
         query = query.filter(Incidencia.fecha_inicio >= filtro_inicio)
-    
+
     if filtro_fin:
         query = query.filter(Incidencia.fecha_fin <= filtro_fin)
 
     incidencias = query.order_by(Incidencia.fecha_solicitud.desc()).all()
-    
+
     # Lista de empleados para poblar el select del filtro
     empleados = Trabajador.query.filter_by(idEmpresa=empresa_id).order_by(Trabajador.nombre).all()
 
-    return render_template("incidencias_list.html", 
-                           incidencias=incidencias, 
+    return render_template("incidencias_list.html",
+                           incidencias=incidencias,
                            empleados=empleados,
                            filtro_empleado=filtro_empleado,
                            filtro_inicio=filtro_inicio,
@@ -594,3 +594,72 @@ def incidencia_delete(incidencia_id):
         flash(f"Error al eliminar: {str(e)}", "danger")
 
     return redirect(url_for("rrhh_web.incidencias_list"))
+
+@rrhh_bp.post("/fichajes/<int:fichaje_id>/eliminar")
+@admin_required
+def fichaje_delete(fichaje_id):
+    fichaje = Fichaje.query.get_or_404(fichaje_id)
+    # Seguridad: Verificar que pertenece a la empresa del admin
+    if fichaje.trabajador.idEmpresa != session.get("empresa_id"):
+        flash("No tienes permiso para eliminar este fichaje.", "danger")
+        return redirect(url_for("rrhh_web.fichajes_list"))
+
+    try:
+        db.session.delete(fichaje)
+        db.session.commit()
+        flash("Registro de fichaje eliminado correctamente.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error al eliminar: {str(e)}", "danger")
+
+    return redirect(url_for("rrhh_web.fichajes_list"))
+
+# --- BOTON MANUAL DE NOTIFICACIONES ---
+@rrhh_bp.post("/notificaciones/ejecutar-ausencias")
+@admin_required
+def ejecutar_notificaciones_ausencia():
+    """Ejecuta la comprobación de ausencias manualmente desde la web."""
+    print("--- EJECUTANDO NOTIFICACIONES MANUALMENTE ---")
+
+    # 1. Configuración de días
+    DIAS_SEMANA = {0: "lunes", 1: "martes", 2: "miercoles", 3: "jueves", 4: "viernes", 5: "sabado", 6: "domingo"}
+    hoy = date.today()
+    nombre_dia = DIAS_SEMANA[hoy.weekday()]
+
+    # 2. Buscar día en BD
+    dia_db = Dia.query.filter_by(nombre=nombre_dia).first()
+    if not dia_db:
+        flash(f"Error: No existe el día '{nombre_dia}' en la base de datos.", "danger")
+        return redirect(url_for('rrhh_web.fichajes_list'))
+
+    trabajadores = Trabajador.query.all()
+    enviados = 0
+    detectados = 0
+
+    for t in trabajadores:
+        # A. Tiene horario y trabaja hoy?
+        if not t.idHorario: continue
+
+        franja_hoy = Franja.query.filter_by(id_horario=t.idHorario, id_dia=dia_db.id).first()
+        if not franja_hoy: continue # Libra hoy
+
+        # B. Ha fichado entrada?
+        fichaje = Fichaje.query.filter(
+            Fichaje.id_trabajador == t.id_trabajador,
+            Fichaje.tipo == 'ENTRADA',
+            db.func.date(Fichaje.fecha_hora) == hoy
+        ).first()
+
+        if not fichaje:
+            detectados += 1
+            if t.email:
+                # Enviar correo real
+                exito = enviar_correo_ausencia(t.email, t.nombre)
+                if exito: enviados += 1
+
+    if detectados == 0:
+        flash("Todos los empleados con turno han fichado correctamente hoy.", "success")
+    else:
+        flash(f"Proceso finalizado: Se detectaron {detectados} ausencias y se enviaron {enviados} correos.", "warning")
+
+    return redirect(url_for('rrhh_web.fichajes_list'))

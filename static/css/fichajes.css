@@ -213,3 +213,30 @@ input[type="datetime-local"] {
     from { opacity: 0; transform: translateY(-20px); }
     to { opacity: 1; transform: translateY(0); }
 }
+
+
+.btn-pop-warning {
+    background-color: #ff9f43; /* Naranja */
+    color: #000;
+    border: 3px solid #000;
+    box-shadow: 4px 4px 0px #000;
+    font-weight: 800;
+    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    text-decoration: none;
+}
+
+.btn-pop-warning:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000;
+    background-color: #ffca3a;
+    color: #000;
+}
+
+.btn-pop-warning:active {
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0px #000;
+}

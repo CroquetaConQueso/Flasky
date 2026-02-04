@@ -112,3 +112,7 @@ class ResumenMensualOutputSchema(Schema):
     teoricas = fields.Float()
     trabajadas = fields.Float()
     saldo = fields.Float()
+
+# Token de Firebase
+class FcmTokenSchema(Schema):
+    token = fields.String(required=True)

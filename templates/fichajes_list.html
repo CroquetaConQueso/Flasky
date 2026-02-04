@@ -15,8 +15,15 @@
         </h2>
         
         <div class="d-flex gap-3 align-items-center">
+            
+            <form action="{{ url_for('rrhh_web.ejecutar_notificaciones_ausencia') }}" method="POST" onsubmit="return confirm('¿Lanzar comprobación de ausencias?\nSe enviarán correos a quien no haya fichado hoy.');">
+                <button type="submit" class="btn btn-pop-warning" title="Enviar alertas por no fichar">
+                    <i class="ph-bold ph-bell-ringing me-2"></i> VERIFICAR AUSENCIAS
+                </button>
+            </form>
+
             <a href="{{ url_for('rrhh_web.fichaje_nuevo') }}" class="btn btn-pop btn-pop-primary d-none d-md-inline-block">
-                <i class="ph-bold ph-plus"></i> NUEVO FICHAJE
+                <i class="ph-bold ph-plus me-2"></i> NUEVO FICHAJE
             </a>
         </div>
     </div>
@@ -117,6 +124,7 @@
                         <tbody>
                             {% for j in jornadas %}
                             <tr class="shift-row" style="border-bottom: 2px solid #000;">
+                                
                                 <td class="ps-4">
                                     <div class="d-flex flex-column">
                                         <span class="fw-bold">{{ j.trabajador.nombre }} {{ j.trabajador.apellidos }}</span>
@@ -125,7 +133,8 @@
                                 </td>
 
                                 <td>
-                                    <div class="d-flex align-items-center justify-content-center gap-2">
+                                    <div class="d-flex align-items-center justify-content-center gap-3">
+                                        
                                         {% if j.entrada %}
                                             <div class="d-flex flex-column align-items-center">
                                                 <span class="time-badge time-badge-entry">
@@ -134,6 +143,11 @@
                                                 <small class="text-muted fw-bold mt-1" style="font-size: 0.7rem;">
                                                     {{ j.entrada.fecha_hora.strftime('%d/%m') }}
                                                 </small>
+                                                <form action="{{ url_for('rrhh_web.fichaje_delete', fichaje_id=j.entrada.id_fichaje) }}" method="POST" onsubmit="return confirm('¿Borrar esta entrada?');" class="mt-1">
+                                                    <button type="submit" class="btn btn-link p-0 text-danger" title="Eliminar entrada">
+                                                        <i class="ph-bold ph-trash fs-5"></i>
+                                                    </button>
+                                                </form>
                                             </div>
                                         {% else %}
                                             <div class="time-badge bg-danger text-white border-dark">???</div>
@@ -149,6 +163,11 @@
                                                 <small class="text-muted fw-bold mt-1" style="font-size: 0.7rem;">
                                                     {{ j.salida.fecha_hora.strftime('%d/%m') }}
                                                 </small>
+                                                <form action="{{ url_for('rrhh_web.fichaje_delete', fichaje_id=j.salida.id_fichaje) }}" method="POST" onsubmit="return confirm('¿Borrar esta salida?');" class="mt-1">
+                                                    <button type="submit" class="btn btn-link p-0 text-danger" title="Eliminar salida">
+                                                        <i class="ph-bold ph-trash fs-5"></i>
+                                                    </button>
+                                                </form>
                                             </div>
                                         {% elif j.status == 'active' %}
                                             <span class="badge bg-success border border-dark text-white p-2">

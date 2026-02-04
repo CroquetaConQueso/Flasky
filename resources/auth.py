@@ -8,7 +8,7 @@ from sqlalchemy import or_
 from extensions import db
 from models import Trabajador
 # IMPORTANTE: Asegúrate de importar el nuevo esquema aquí
-from schemas import UserLoginSchema, PasswordResetSchema, ChangePasswordSchema
+from schemas import UserLoginSchema, PasswordResetSchema, ChangePasswordSchema, FcmTokenSchema
 from utils.email_sender import enviar_correo_password
 
 blp = Blueprint("auth", __name__, description="Autenticacion y Tokens")
@@ -118,3 +118,20 @@ class ChangePassword(MethodView):
         db.session.commit()
 
         return {"message": "Contraseña actualizada correctamente"}, 200
+
+#Guardar token
+@blp.route("/save-fcm-token")
+class SaveFcmToken(MethodView):
+    @jwt_required()
+    @blp.arguments(FcmTokenSchema)
+    def post(self, token_data):
+        user_id = get_jwt_identity()
+        trabajador = Trabajador.query.get(user_id)
+
+        if trabajador:
+            trabajador.fcm_token = token_data["token"]
+            db.session.commit()
+            print(f"Token FCM guardado para {trabajador.nombre}")
+            return {"message": "Token guardado correctamente"}, 200
+
+        abort(404, message="Usuario no encontrado")

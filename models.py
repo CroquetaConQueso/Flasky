@@ -8,11 +8,14 @@ class Empresa(db.Model):
     id_empresa = db.Column(db.Integer, primary_key=True, autoincrement=True)
     nombrecomercial = db.Column(db.String(120), nullable=False)
     cif = db.Column(db.String(20), nullable=False)
+    direccion = db.Column(db.String(200), nullable=True) # Añadido por si acaso
     latitud = db.Column(db.Float, nullable=True)
     longitud = db.Column(db.Float, nullable=True)
     radio = db.Column(db.Integer, nullable=True, default=100)
 
     trabajadores = db.relationship("Trabajador", back_populates="empresa")
+    # Relación inversa para horarios
+    horarios = db.relationship("Horario", backref="empresa", lazy=True)
 
 
 class Rol(db.Model):
@@ -30,6 +33,18 @@ class Horario(db.Model):
     id_horario = db.Column(db.Integer, primary_key=True, autoincrement=True)
     nombre_horario = db.Column(db.String(80), nullable=False)
     descripcion = db.Column(db.String(255))
+
+    # FK A EMPRESA (Necesario para el Seed)
+    empresa_id = db.Column(db.Integer, db.ForeignKey('empresa.id_empresa'), nullable=True)
+
+    # CHECKS DE DÍAS (Necesario para la Web)
+    lunes = db.Column(db.Boolean, default=True)
+    martes = db.Column(db.Boolean, default=True)
+    miercoles = db.Column(db.Boolean, default=True)
+    jueves = db.Column(db.Boolean, default=True)
+    viernes = db.Column(db.Boolean, default=True)
+    sabado = db.Column(db.Boolean, default=False)
+    domingo = db.Column(db.Boolean, default=False)
 
     trabajadores = db.relationship("Trabajador", back_populates="horario")
     franjas = db.relationship(
@@ -51,8 +66,10 @@ class Dia(db.Model):
 class Franja(db.Model):
     __tablename__ = "franjas"
 
-    id_dia = db.Column(db.Integer, db.ForeignKey("dia.id"), primary_key=True)
+    # Clave primaria compuesta
     id_horario = db.Column(db.Integer, db.ForeignKey("horario.id_horario"), primary_key=True)
+    id_dia = db.Column(db.Integer, db.ForeignKey("dia.id"), primary_key=True)
+
     hora_entrada = db.Column(db.Time, nullable=False)
     hora_salida = db.Column(db.Time, nullable=False)
 
@@ -67,25 +84,26 @@ class Trabajador(db.Model):
     nif = db.Column(db.String(20), nullable=False)
     nombre = db.Column(db.String(80), nullable=False)
     apellidos = db.Column(db.String(120), nullable=False)
-    passw = db.Column(db.String(255), nullable=False)
+    passw = db.Column(db.String(255), nullable=False) # Mantenemos passw
     email = db.Column(db.String(120), nullable=False)
     telef = db.Column(db.String(30))
 
+    # --- CAMPO NUEVO PARA NOTIFICACIONES FIREBASE ---
+    fcm_token = db.Column(db.String(255), nullable=True)
+
     idEmpresa = db.Column(db.Integer, db.ForeignKey("empresa.id_empresa"), nullable=False)
-    idHorario = db.Column(db.Integer, db.ForeignKey("horario.id_horario"), nullable=False)
+    idHorario = db.Column(db.Integer, db.ForeignKey("horario.id_horario"), nullable=True) # Nullable por seguridad
     idRol = db.Column(db.Integer, db.ForeignKey("rol.id_rol"), nullable=False)
 
     empresa = db.relationship("Empresa", back_populates="trabajadores")
     horario = db.relationship("Horario", back_populates="trabajadores")
     rol = db.relationship("Rol", back_populates="trabajadores")
-    
-    # Relación con fichajes
+
     fichajes = db.relationship("Fichaje", back_populates="trabajador", cascade="all, delete-orphan")
-    # NUEVO: Relación con incidencias
     incidencias = db.relationship("Incidencia", back_populates="trabajador", cascade="all, delete-orphan")
 
     def set_password(self, password):
-        self.passw = generate_password_hash(password)
+        self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
         return check_password_hash(self.passw, password)
@@ -96,30 +114,25 @@ class Fichaje(db.Model):
 
     id_fichaje = db.Column(db.Integer, primary_key=True, autoincrement=True)
     fecha_hora = db.Column(db.DateTime, nullable=False, default=datetime.now)
-    tipo = db.Column(db.String(20), nullable=False) # 'ENTRADA' o 'SALIDA'
+    tipo = db.Column(db.String(20), nullable=False)
     latitud = db.Column(db.Float, nullable=False)
     longitud = db.Column(db.Float, nullable=False)
-    
+
     id_trabajador = db.Column(db.Integer, db.ForeignKey("trabajador.id_trabajador"), nullable=False)
     trabajador = db.relationship("Trabajador", back_populates="fichajes")
 
 
-# NUEVA TABLA: INCIDENCIAS (Vacaciones, Bajas, etc.)
 class Incidencia(db.Model):
     __tablename__ = "incidencia"
 
     id_incidencia = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    
-    # Datos de la solicitud
-    tipo = db.Column(db.String(50), nullable=False) # VACACIONES, BAJA, OLVIDO, ASUNTOS_PROPIOS
+    tipo = db.Column(db.String(50), nullable=False)
     fecha_solicitud = db.Column(db.DateTime, default=datetime.now)
-    fecha_inicio = db.Column(db.Date, nullable=False) # Día que empieza
-    fecha_fin = db.Column(db.Date, nullable=False)    # Día que termina
+    fecha_inicio = db.Column(db.Date, nullable=False)
+    fecha_fin = db.Column(db.Date, nullable=False)
     comentario_trabajador = db.Column(db.Text, nullable=True)
-    
-    # Resolución Admin
-    estado = db.Column(db.String(20), default='PENDIENTE') # PENDIENTE, APROBADA, RECHAZADA
-    comentario_admin = db.Column(db.Text, nullable=True) # Motivo del rechazo o nota
-    
+    estado = db.Column(db.String(20), default='PENDIENTE')
+    comentario_admin = db.Column(db.Text, nullable=True)
+
     id_trabajador = db.Column(db.Integer, db.ForeignKey("trabajador.id_trabajador"), nullable=False)
     trabajador = db.relationship("Trabajador", back_populates="incidencias")
