@@ -19,7 +19,7 @@ class Login(MethodView):
     @blp.arguments(UserLoginSchema)
     def post(self, user_data):
         print(f"[LOGIN] Intento de acceso: {user_data.get('nif')}", file=sys.stderr)
-        
+
         identificador = user_data["nif"].strip()
         posibles_valores = {identificador, identificador.lower(), identificador.upper()}
 
@@ -30,52 +30,63 @@ class Login(MethodView):
             )
         ).first()
 
-        if not trabajador:
-            print("[LOGIN] Error: Usuario no encontrado", file=sys.stderr)
-            abort(401, message="Credenciales incorrectas")
-
-        if not trabajador.check_password(user_data["password"]):
-            print(f"[LOGIN] Error: Password incorrecto para {trabajador.nombre}", file=sys.stderr)
+        if not trabajador or not trabajador.check_password(user_data["password"]):
             abort(401, message="Credenciales incorrectas")
 
         print(f"[LOGIN] Éxito: {trabajador.nombre} ha entrado.", file=sys.stderr)
-        
+
+        # --- Calcular recordatorio (para que la APP lo muestre LOCALMENTE) ---
+        recordatorio = {"avisar": False}
+
+        try:
+            now = datetime.now(TZ).replace(tzinfo=None)
+            hoy = now.date()
+            nombre_dia = DIAS_SEMANA[hoy.weekday()]
+
+            if trabajador.idHorario:
+                dia_db = Dia.query.filter_by(nombre=nombre_dia).first()
+                if dia_db:
+                    franjas_hoy = Franja.query.filter_by(
+                        id_horario=trabajador.idHorario,
+                        id_dia=dia_db.id
+                    ).all()
+
+                    if franjas_hoy:
+                        # Hora de entrada más temprana + margen
+                        hora_entrada_min = min(f.hora_entrada for f in franjas_hoy)
+                        hora_limite = datetime.combine(hoy, hora_entrada_min) + timedelta(minutes=MARGEN_MINUTOS)
+
+                        # Solo avisar si ya pasó la hora de entrada (+margen)
+                        if now >= hora_limite:
+                            inicio_dia = datetime.combine(hoy, dtime.min)
+                            fin_dia = datetime.combine(hoy, dtime.max)
+
+                            fichaje_hoy = Fichaje.query.filter(
+                                Fichaje.id_trabajador == trabajador.id_trabajador,
+                                func.upper(func.trim(Fichaje.tipo)) == "ENTRADA",
+                                Fichaje.fecha_hora >= inicio_dia,
+                                Fichaje.fecha_hora <= fin_dia
+                            ).first()
+
+                            if not fichaje_hoy:
+                                recordatorio = {
+                                    "avisar": True,
+                                    "titulo": "⚠️ ¡No has fichado!",
+                                    "mensaje": f"Hola {trabajador.nombre}, hoy trabajas y no consta tu entrada. Regístrala cuanto antes."
+                                }
+                        # else: aún no toca -> no avisar
+        except Exception as e:
+            print(f"[LOGIN] Recordatorio: error no crítico: {e}", file=sys.stderr)
+
         access_token = create_access_token(identity=str(trabajador.id_trabajador))
-
-        # --- CORRECCIÓN CRÍTICA: LÓGICA COMPATIBLE CON TU MODELO DE DATOS ---
-        # Buscamos el ÚLTIMO fichaje realizado por este trabajador
-        ultimo_fichaje = Fichaje.query.filter_by(
-            id_trabajador=trabajador.id_trabajador
-        ).order_by(Fichaje.fecha_hora.desc()).first()
-
-        # Determinamos si está trabajando actualmente
-        # Si tiene fichajes y el último es de tipo 'ENTRADA', significa que está dentro.
-        esta_trabajando = False
-        if ultimo_fichaje and ultimo_fichaje.tipo.upper() == "ENTRADA":
-            esta_trabajando = True
-
-        # Si NO está trabajando, le recordamos fichar
-        if not esta_trabajando:
-            if trabajador.fcm_token:
-                try:
-                    titulo = "Recordatorio"
-                    mensaje = f"Hola {trabajador.nombre}, recuerda registrar tu entrada."
-                    enviar_notificacion_push(trabajador.fcm_token, titulo, mensaje)
-                    print(f"[FIREBASE] Notificación enviada a {trabajador.nombre}", file=sys.stderr)
-                except Exception as e:
-                    print(f"[FIREBASE] Error enviando: {e}", file=sys.stderr)
-            else:
-                print("[FIREBASE] Usuario sin token, se omite aviso.", file=sys.stderr)
-        else:
-            print(f"[LOGIN] {trabajador.nombre} ya tiene un fichaje de ENTRADA activo.", file=sys.stderr)
-        # ----------------------------------------------------------------------
 
         return {
             "access_token": access_token,
             "id_trabajador": trabajador.id_trabajador,
             "nombre": trabajador.nombre,
             "rol": trabajador.rol.nombre_rol if trabajador.rol else "Empleado",
-            "id_empresa": trabajador.idEmpresa
+            "id_empresa": trabajador.idEmpresa,
+            "recordatorio": recordatorio
         }
 
 @blp.route("/reset-password")

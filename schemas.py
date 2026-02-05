@@ -1,6 +1,6 @@
 from marshmallow import Schema, fields, validate
 
-# --- ESQUEMAS BÁSICOS ---
+# --- ESQUEMAS BÁSICOS (Spanish Fields) ---
 
 class PlainEmpresaSchema(Schema):
     id_empresa = fields.Int(dump_only=True)
@@ -34,25 +34,26 @@ class PlainFichajeSchema(Schema):
     latitud = fields.Float()
     longitud = fields.Float()
 
-# --- ESQUEMAS DE LOGIN Y RECUPERACIÓN (CORREGIDO PARA SER FLEXIBLE) ---
+# --- LOGIN & PASSWORD ---
 
 class UserLoginSchema(Schema):
     nif = fields.String(required=True, validate=validate.Length(min=4, max=100))
     password = fields.String(required=True, load_only=True)
 
 class PasswordResetSchema(Schema):
-    # CORRECCIÓN IMPORTANTE: No exigimos 'required=True' en un solo campo.
-    # Permitimos que lleguen como opcionales y lo gestionamos en auth.py
     identificador = fields.String(load_default=None)
     email = fields.String(load_default=None)
     nif = fields.String(load_default=None)
 
-# --- ESQUEMAS COMPLETOS (Relaciones) ---
+# --- ESQUEMAS COMPLETOS (Relationships) ---
 
 class TrabajadorSchema(PlainTrabajadorSchema):
     idEmpresa = fields.Int(required=True, load_only=True)
     idRol = fields.Int(required=True, load_only=True)
     idHorario = fields.Int(load_only=True)
+
+    # Adding rol_nombre flat field for easier consumption by Android/Web
+    rol_nombre = fields.String(attribute="rol.nombre_rol", dump_only=True)
 
     empresa = fields.Nested(PlainEmpresaSchema(), dump_only=True)
     rol = fields.Nested(PlainRolSchema(), dump_only=True)
@@ -75,10 +76,9 @@ class IncidenciaSchema(Schema):
     comentario_trabajador = fields.String()
     estado = fields.String(dump_only=True)
     comentario_admin = fields.String(dump_only=True)
-
     trabajador = fields.Nested(PlainTrabajadorSchema(), dump_only=True)
 
-# --- ESQUEMAS NECESARIOS PARA FICHAJES (Añadidos para evitar errores de importación) ---
+# --- EXTRAS ---
 
 class FichajeInputSchema(Schema):
     latitud = fields.Float(required=True)
@@ -101,8 +101,6 @@ class IncidenciaCreateSchema(Schema):
     fecha_fin = fields.Date(required=True)
     comentario_trabajador = fields.String()
 
-# --- RESUMENES DE HORAS
-
 class ResumenMensualQuerySchema(Schema):
     mes = fields.Int(load_default=None)
     anio = fields.Int(load_default=None)
@@ -113,6 +111,5 @@ class ResumenMensualOutputSchema(Schema):
     trabajadas = fields.Float()
     saldo = fields.Float()
 
-# Token de Firebase
 class FcmTokenSchema(Schema):
     token = fields.String(required=True)
