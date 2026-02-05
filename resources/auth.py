@@ -104,59 +104,79 @@ def _debe_avisar_fichaje(trabajador: Trabajador):
 class Login(MethodView):
     @blp.arguments(UserLoginSchema)
     def post(self, user_data):
-        print(f"[LOGIN] Intento de acceso: {user_data.get('nif')}", file=sys.stderr)
+        print(f"[LOGIN] Intento de acceso raw: {user_data.get('nif')}", file=sys.stderr)
 
-        identificador = user_data["nif"].strip()
-        posibles_valores = {identificador, identificador.lower(), identificador.upper()}
+        ident_raw = (user_data.get("nif") or "").strip().upper()
+        password_raw = user_data.get("password") or ""
+
+        if not ident_raw or not password_raw:
+            abort(401, message="Credenciales incorrectas")
 
         trabajador = Trabajador.query.filter(
             or_(
-                Trabajador.nif.in_(posibles_valores),
-                Trabajador.email.in_(posibles_valores)
+                func.upper(func.trim(Trabajador.nif)) == ident_raw,
+                func.upper(func.trim(Trabajador.email)) == ident_raw
             )
         ).first()
 
         if not trabajador:
+            print(f"[LOGIN] Error: Usuario '{ident_raw}' NO encontrado", file=sys.stderr)
             abort(401, message="Credenciales incorrectas")
 
-        if not trabajador.check_password(user_data["password"]):
+        if not trabajador.check_password(password_raw):
+            print(f"[LOGIN] Error: Password incorrecto para {trabajador.nombre}", file=sys.stderr)
             abort(401, message="Credenciales incorrectas")
 
         print(f"[LOGIN] Éxito: {trabajador.nombre} ha entrado.", file=sys.stderr)
 
-        # 1) Generamos token
-        access_token = create_access_token(identity=str(trabajador.id_trabajador))
+        # --- AVISO: hoy trabaja + NO hay ENTRADA hoy ---
+        recordatorio = {"avisar": False}
 
-        # 2) Calculamos aviso (sin depender de FCM)
         try:
-            debe_avisar, titulo, mensaje, trabaja_hoy, hora_entrada = _debe_avisar_fichaje(trabajador)
+            ahora = datetime.now()
+            hoy = ahora.date()
+            nombre_dia = DIAS_SEMANA.get(hoy.weekday())
 
-            if debe_avisar:
-                print(f"[LOGIN] Aviso de falta de fichaje para {trabajador.nombre}", file=sys.stderr)
+            if trabajador.idHorario and nombre_dia:
+                dia_db = Dia.query.filter_by(nombre=nombre_dia).first()
+                if dia_db:
+                    # trabaja hoy si hay franjas para su horario y ese día
+                    franjas_hoy = Franja.query.filter_by(
+                        id_horario=trabajador.idHorario,
+                        id_dia=dia_db.id
+                    ).all()
 
-                # Si ADEMÁS quieres mandar push por FCM en login (opcional), descomenta esto:
-                # if trabajador.fcm_token:
-                #     enviar_notificacion_push(trabajador.fcm_token, titulo, mensaje)
+                    if franjas_hoy:
+                        inicio_dia = datetime.combine(hoy, dtime.min)
+                        fin_dia = datetime.combine(hoy, dtime.max)
+
+                        fichaje_hoy = Fichaje.query.filter(
+                            Fichaje.id_trabajador == trabajador.id_trabajador,
+                            func.upper(func.trim(Fichaje.tipo)) == "ENTRADA",
+                            Fichaje.fecha_hora >= inicio_dia,
+                            Fichaje.fecha_hora <= fin_dia
+                        ).first()
+
+                        if not fichaje_hoy:
+                            recordatorio = {
+                                "avisar": True,
+                                "titulo": "⚠️ ¡No has fichado!",
+                                "mensaje": f"Hola {trabajador.nombre}, hoy trabajas y no consta tu ENTRADA. Regístrala cuanto antes."
+                            }
+                            print(f"[LOGIN] ALERTA: {trabajador.nombre} NO tiene ENTRADA hoy.", file=sys.stderr)
 
         except Exception as e:
-            # Importante: que se vea SIEMPRE el error real en logs
-            print(f"[LOGIN] Error comprobando aviso fichaje: {e}", file=sys.stderr)
-            debe_avisar, titulo, mensaje, trabaja_hoy, hora_entrada = (False, None, None, False, None)
+            print(f"[LOGIN] Error calculando recordatorio (no crítico): {e}", file=sys.stderr)
 
-        # 3) Respuesta (añadimos campos nuevos; no rompe tu JWT)
+        access_token = create_access_token(identity=str(trabajador.id_trabajador))
+
         return {
             "access_token": access_token,
             "id_trabajador": trabajador.id_trabajador,
             "nombre": trabajador.nombre,
             "rol": trabajador.rol.nombre_rol if trabajador.rol else "Empleado",
             "id_empresa": trabajador.idEmpresa,
-
-            # NUEVOS CAMPOS (para que Android muestre notificación local inmediata)
-            "alerta_fichaje": bool(debe_avisar),
-            "alerta_titulo": titulo,
-            "alerta_mensaje": mensaje,
-            "trabaja_hoy": bool(trabaja_hoy),
-            "hora_entrada_hoy": hora_entrada
+            "recordatorio": recordatorio
         }
 
 
