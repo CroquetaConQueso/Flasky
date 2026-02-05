@@ -2,9 +2,8 @@ import firebase_admin
 from firebase_admin import credentials, messaging
 import os
 
-# Evitar inicializar la app multiples veces si Flask se reinicia
+# Inicialización única
 if not firebase_admin._apps:
-    # Ruta al archivo que acabas de descargar
     cred_path = os.path.join(os.getcwd(), "serviceAccountKey.json")
     
     if os.path.exists(cred_path):
@@ -12,34 +11,33 @@ if not firebase_admin._apps:
         firebase_admin.initialize_app(cred)
         print("[FIREBASE] Conectado correctamente.")
     else:
-        print(f"[FIREBASE] No se encontro {cred_path}. Las notificaciones no funcionaran.")
+        print(f"[FIREBASE] ERROR CRÍTICO: No se encontró {cred_path}.")
 
 def enviar_notificacion_push(token, titulo, cuerpo):
-    """Envia una notificacion Push a un dispositivo Android especifico."""
+    """
+    Envía notificación. NO captura excepciones para que el
+    código que llama (auth.py) sepa si ha fallado.
+    """
     if not token:
-        print("[FIREBASE] Usuario sin token FCM. No se puede enviar.")
-        return False
+        # Lanzamos error para que auth.py se entere
+        raise ValueError("Usuario sin token FCM")
 
-    try:
-        # Construir el mensaje
-        message = messaging.Message(
-            notification=messaging.Notification(
-                title=titulo,
-                body=cuerpo,
-            ),
-            # Datos extra (opcional, util para abrir una pantalla especifica)
-            data={
-                "titulo": titulo,
-                "mensaje": cuerpo
-            },
-            token=token,
-        )
+    # Construir el mensaje con datos redundantes para asegurar que Android lo lea
+    message = messaging.Message(
+        notification=messaging.Notification(
+            title=titulo,
+            body=cuerpo,
+        ),
+        data={
+            "title": titulo,    # Claves estándar
+            "body": cuerpo,
+            "titulo": titulo,   # Claves legacy (para tu app actual)
+            "mensaje": cuerpo
+        },
+        token=token,
+    )
 
-        # Enviar
-        response = messaging.send(message)
-        print(f"[FIREBASE] Notificacion enviada ID: {response}")
-        return True
-
-    except Exception as e:
-        print(f"[FIREBASE] Error enviando push: {e}")
-        return False
+    # Si esto falla, explotará y auth.py capturará el error real
+    response = messaging.send(message)
+    print(f"[FIREBASE] ÉXITO REAL. ID: {response}")
+    return True
