@@ -22,9 +22,9 @@ def calcular_distancia(lat1, lon1, lat2, lon2):
     a = (math.sin(delta_phi / 2) ** 2 +
          math.cos(phi1) * math.cos(phi2) *
          math.sin(delta_lambda / 2) ** 2)
-    
+
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-    
+
     return R * c
 
 @blp.route("/resumen")
@@ -131,9 +131,9 @@ class Fichar(MethodView):
                 empresa.latitud,
                 empresa.longitud
             )
-            
+
             radio_permitido = (empresa.radio or 100) + 10
-            
+
             if distancia > radio_permitido:
                 abort(403, message=f"Estás demasiado lejos de la empresa ({int(distancia)}m). Acércate para fichar.")
 
@@ -144,17 +144,17 @@ class Fichar(MethodView):
         )
 
         tipo_nuevo = "ENTRADA"
-        
+
         if ultimo_fichaje:
             segundos_transcurridos = (datetime.now() - ultimo_fichaje.fecha_hora).total_seconds()
-            
+
             # Bloqueo para evitar dobles clicks accidentales
             if segundos_transcurridos < 60:
                 abort(429, message="Ya has fichado hace un momento. Espera un minuto.")
 
             if ultimo_fichaje.tipo == "ENTRADA":
                 horas_transcurridas = segundos_transcurridos / 3600
-                
+
                 # Detección de olvido de salida del día anterior (Zombie)
                 if horas_transcurridas > 16:
                     nueva_incidencia = Incidencia(
@@ -205,12 +205,12 @@ class FichajesEmpleado(MethodView):
         """(Admin) Obtener historial de fichajes de otro empleado"""
         usuario_que_pide = get_jwt_identity()
         admin = Trabajador.query.get_or_404(usuario_que_pide)
-        
+
         #Verificacion de rol
         es_admin = False
         if admin.rol and admin.rol.nombre_rol.upper() in ['ADMIN', 'ADMINISTRADOR', 'RESPONSABLE']:
             es_admin = True
-            
+
         if not es_admin:
             abort(403, message="Acceso denegado: Se requieren permisos de Administrador.")
 
@@ -222,6 +222,24 @@ class FichajesEmpleado(MethodView):
         return (
             Fichaje.query.filter_by(id_trabajador=empleado_id)
             .order_by(Fichaje.fecha_hora.desc())
-            .limit(100) 
+            .limit(100)
             .all()
         )
+
+@blp.route("/historial-admin/<int:id_trabajador>")
+class HistorialAdmin(MethodView):
+    @jwt_required()
+    @blp.response(200, FichajeSchema(many=True))
+    def get(self, id_trabajador):
+        yo_id = get_jwt_identity()
+        yo = Trabajador.query.get(yo_id)
+
+        # Validación de Rol (Solo RRHH/Super/Admin pueden ver esto)
+        if not yo or not yo.rol or yo.rol.nombre_rol.upper() not in ['RRHH', 'SUPER', 'ADMIN', 'GERENTE']:
+             abort(403, message="No tienes permisos para ver fichajes de otros.")
+
+        # Obtener fichajes del empleado solicitado
+        fichajes = Fichaje.query.filter_by(id_trabajador=id_trabajador)\
+            .order_by(desc(Fichaje.fecha_hora)).all()
+
+        return fichajes
