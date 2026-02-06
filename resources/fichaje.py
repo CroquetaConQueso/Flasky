@@ -1,15 +1,44 @@
 import math
 import calendar
+import re
 from datetime import datetime, timedelta
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from sqlalchemy import desc
 
 from extensions import db
 from models import Trabajador, Fichaje, Empresa, Incidencia, Dia, Franja, Rol
-from schemas import FichajeInputSchema, FichajeOutputSchema, ResumenMensualQuerySchema, ResumenMensualOutputSchema
+from schemas import FichajeInputSchema, FichajeOutputSchema, ResumenMensualQuerySchema, ResumenMensualOutputSchema, FichajeSchema
 
 blp = Blueprint("fichajes", __name__, description="Fichajes y Control de Presencia")
+
+# --- FUNCIONES AUXILIARES ROBUSTAS ---
+
+def normalizar_rol(raw: str) -> str:
+    """Elimina todo lo que no sea letra A-Z y pasa a mayúsculas."""
+    if not raw:
+        return "SIN_ROL"
+    # mayúsculas + quitar espacios + quitar puntos/guiones/etc (solo letras A-Z)
+    return re.sub(r'[^A-Z]', '', raw.strip().upper())
+
+def es_admin_robusto(trabajador):
+    """
+    Analiza el rol del trabajador y devuelve (TienePermiso, RolDetectado).
+    Acepta variaciones como 'RR.HH.', 'Admin ', 'Jefe-Tienda'.
+    """
+    if not trabajador or not getattr(trabajador, "rol", None) or not getattr(trabajador.rol, "nombre_rol", None):
+        return False, "SIN_ROL"
+
+    rol_norm = normalizar_rol(trabajador.rol.nombre_rol)
+
+    # Lista de palabras clave que otorgan poder
+    claves = ["ADMIN", "RESPONSABLE", "SUPER", "RRHH", "GERENTE", "JEFE", "ENCARGADO", "DIREC"]
+    
+    # Si el rol normalizado contiene alguna de las claves, tiene permiso
+    tiene_poder = any(k in rol_norm for k in claves)
+
+    return tiene_poder, rol_norm
 
 def calcular_distancia(lat1, lon1, lat2, lon2):
     # Fórmula de Haversine para calcular distancia entre coordenadas
@@ -26,6 +55,8 @@ def calcular_distancia(lat1, lon1, lat2, lon2):
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
     return R * c
+
+# --- ENDPOINTS ---
 
 @blp.route("/resumen")
 class ResumenMensual(MethodView):
@@ -203,21 +234,24 @@ class FichajesEmpleado(MethodView):
     @blp.response(200, FichajeOutputSchema(many=True))
     def get(self, empleado_id):
         """(Admin) Obtener historial de fichajes de otro empleado"""
-        usuario_que_pide = get_jwt_identity()
-        admin = Trabajador.query.get_or_404(usuario_que_pide)
+        yo_id = get_jwt_identity()
+        admin = Trabajador.query.get_or_404(yo_id)
 
-        #Verificacion de rol
-        es_admin = False
-        if admin.rol and admin.rol.nombre_rol.upper() in ['ADMIN', 'ADMINISTRADOR', 'RESPONSABLE']:
-            es_admin = True
+        # --- LOGICA ROBUSTA CON TRAZAS ---
+        tiene_permiso, rol_detectado = es_admin_robusto(admin)
 
-        if not es_admin:
-            abort(403, message="Acceso denegado: Se requieren permisos de Administrador.")
+        print(f"DEBUG: /fichajes-empleado -> ID: {yo_id}, Nombre: {admin.nombre}, Rol RAW: '{admin.rol.nombre_rol if admin.rol else 'None'}', Rol NORM: '{rol_detectado}', Acceso: {tiene_permiso}")
+
+        if not tiene_permiso:
+            # Incluimos el rol detectado en el mensaje de error para depurar en el cliente
+            abort(403, message=f"Acceso denegado. Se requieren permisos de Admin. Rol detectado: '{rol_detectado}'")
 
         # Verificar que el empleado objetivo pertenece a la misma empresa
-        empleado_objetivo = Trabajador.query.get_or_404(empleado_id)
-        if empleado_objetivo.idEmpresa != admin.idEmpresa:
-            abort(404, message="Empleado no encontrado en tu empresa.")
+        # Si es SUPER, podría saltarse esta restricción si se desea, pero por seguridad se mantiene
+        if "SUPER" not in rol_detectado:
+            empleado_objetivo = Trabajador.query.get_or_404(empleado_id)
+            if empleado_objetivo.idEmpresa != admin.idEmpresa:
+                abort(404, message="Empleado no encontrado en tu empresa.")
 
         return (
             Fichaje.query.filter_by(id_trabajador=empleado_id)
@@ -232,14 +266,18 @@ class HistorialAdmin(MethodView):
     @blp.response(200, FichajeSchema(many=True))
     def get(self, id_trabajador):
         yo_id = get_jwt_identity()
-        yo = Trabajador.query.get(yo_id)
+        yo = Trabajador.query.get_or_404(yo_id)
 
-        # Validación de Rol (Solo RRHH/Super/Admin pueden ver esto)
-        if not yo or not yo.rol or yo.rol.nombre_rol.upper() not in ['RRHH', 'SUPER', 'ADMIN', 'GERENTE']:
-             abort(403, message="No tienes permisos para ver fichajes de otros.")
+        # Usamos la misma lógica robusta aquí también
+        tiene_permiso, rol_detectado = es_admin_robusto(yo)
+
+        print(f"DEBUG: /historial-admin -> ID: {yo_id}, Rol RAW: '{yo.rol.nombre_rol if yo.rol else 'None'}', Rol NORM: '{rol_detectado}'")
+
+        if not tiene_permiso:
+             abort(403, message=f"Acceso denegado. Tu rol '{rol_detectado}' no tiene permisos suficientes.")
 
         # Obtener fichajes del empleado solicitado
         fichajes = Fichaje.query.filter_by(id_trabajador=id_trabajador)\
             .order_by(desc(Fichaje.fecha_hora)).all()
-
+            
         return fichajes
