@@ -1,11 +1,9 @@
-/* static/css/incidencias.css - ESTILO POP UNIFICADO Y CORREGIDO */
-
+/* Fondo general de la página */
 body {
     background-color: #fffae5;
 }
 
-/* --- TUS ESTILOS ORIGINALES (Botones, Tarjetas, Inputs) --- */
-
+/* Botón tipo enlace con estilo “call to action” */
 .btn-link {
     background-color: #ff4757;
     color: #fff !important;
@@ -20,12 +18,14 @@ body {
     letter-spacing: 1px;
 }
 
+/* Hover de .btn-link: sube y aclara el color */
 .btn-link:hover {
     background-color: #ff6b81;
     transform: translate(-2px, -2px);
     box-shadow: 6px 6px 0px #000;
 }
 
+/* Tarjeta principal con borde duro y sombra */
 .card-pop {
     border: 4px solid #000;
     border-radius: 0;
@@ -34,6 +34,7 @@ body {
     overflow: visible;
 }
 
+/* Cabecera “banner” de la tarjeta */
 .card-header-pop {
     background-color: #2ed573;
     color: #000;
@@ -53,10 +54,12 @@ body {
     margin-bottom: 1rem;
 }
 
+/* Espaciado interno del contenido */
 .card-body {
     padding: 2rem;
 }
 
+/* Etiquetas de formulario con estilo “sticker” */
 .form-label {
     font-weight: 900;
     text-transform: uppercase;
@@ -69,25 +72,26 @@ body {
     box-shadow: 3px 3px 0px #ccc;
 }
 
-/* Inputs y Selects */
+/* Inputs y selects: borde grueso + tipografía fuerte */
 .form-select, .form-control {
     border: 3px solid #000 !important;
     border-radius: 0 !important;
-    background-color: #f1f2f6; /* Fondo gris claro */
+    background-color: #f1f2f6;
     font-weight: 700;
     font-size: 1.1rem;
     padding: 15px;
     color: #000;
 }
 
+/* Focus: destaca con color y sombra dura */
 .form-select:focus, .form-control:focus {
-    background-color: #7bed9f; /* Verde suave al enfocar */
+    background-color: #7bed9f;
     box-shadow: 5px 5px 0px #000 !important;
     transform: translate(-2px, -2px);
     outline: none;
 }
 
-/* Botón "Nueva Incidencia" (Verde/Azul) */
+/* Botón principal “Nueva incidencia” */
 .btn-pop-success {
     background-color: #3742fa;
     color: #fff;
@@ -102,6 +106,7 @@ body {
     display: inline-block;
 }
 
+/* Hover del botón principal */
 .btn-pop-success:hover {
     background-color: #5352ed;
     color: #fff;
@@ -109,7 +114,7 @@ body {
     box-shadow: 9px 9px 0px #000;
 }
 
-/* Sellos */
+/* Sellos para estado (aprobado/rechazado/pendiente) */
 .stamp {
     font-family: 'Courier New', monospace;
     font-weight: 900;
@@ -121,34 +126,40 @@ body {
     box-shadow: 4px 4px 0px rgba(0,0,0,0.2);
 }
 
+/* Sello aprobado */
 .stamp-approved {
     background-color: #2ed573;
     color: #000;
     transform: rotate(-3deg);
 }
 
+/* Sello rechazado */
 .stamp-rejected {
     background-color: #ff4757;
     color: #fff;
     transform: rotate(3deg);
 }
 
+/* Sello pendiente */
 .stamp-pending {
     background-color: #ffa502;
     color: #000;
 }
 
+/* Tarjeta tipo “ticket” con barra lateral */
 .ticket-card {
     border-left: 15px solid #000 !important;
     background-color: #f7f1e3;
 }
 
+/* Hover del ticket: se desplaza y refuerza sombra */
 .ticket-card:hover {
     background-color: #fff;
     transform: translateX(5px) translateY(-5px);
     box-shadow: 12px 12px 0px #000;
 }
 
+/* Etiqueta tipo sticker (reutilizable) */
 .sticker-label {
     background: #ffde59;
     border: 3px solid #000;
@@ -164,11 +175,9 @@ body {
     font-size: 0.9rem;
 }
 
-/* --- ESTILOS DE FILTROS Y BOTONES DE ACCIÓN (NUEVO/CORREGIDO) --- */
-
-/* Caja de filtros */
+/* Caja de filtros con patrón y borde duro */
 .filter-box {
-    background-color: #e0aaff; /* Lila Pop */
+    background-color: #e0aaff;
     border: 4px solid #000;
     box-shadow: 8px 8px 0px #000;
     padding: 20px;
@@ -178,7 +187,7 @@ body {
     background-size: 10px 10px;
 }
 
-/* Etiquetas pequeñas para los filtros */
+/* Labels dentro de filtros: más compactos */
 .filter-box .form-label {
     font-size: 0.8rem;
     transform: rotate(0deg);
@@ -186,13 +195,13 @@ body {
     box-shadow: 2px 2px 0px #ccc;
 }
 
-/* Inputs de Filtro (Reutilizan .form-control pero ajustamos padding si hace falta) */
+/* Inputs dentro de filtros: más compactos y fondo blanco */
 .filter-box .form-control, .filter-box .form-select {
-    padding: 10px; /* Un poco más compactos */
-    background-color: #fff; /* Fondo blanco por defecto */
+    padding: 10px;
+    background-color: #fff;
 }
 
-/* Botón BUSCAR (Cian Sólido) */
+/* Botón “Buscar” */
 .btn-pop-info {
     background-color: #00f2fe !important;
     color: #000 !important;
@@ -202,13 +211,15 @@ body {
     transition: all 0.1s;
     text-transform: uppercase;
 }
+
+/* Hover del botón “Buscar” */
 .btn-pop-info:hover {
     background-color: #48dbfb !important;
     transform: translate(-2px, -2px);
     box-shadow: 6px 6px 0px #000;
 }
 
-/* Botón LIMPIAR / ELIMINAR (Rojo) */
+/* Botón “Limpiar/Eliminar” */
 .btn-pop-danger {
     background-color: #ff4757 !important;
     color: #fff !important;
@@ -217,15 +228,17 @@ body {
     box-shadow: 4px 4px 0px #000;
     transition: all 0.1s;
 }
+
+/* Hover del botón “Limpiar/Eliminar” */
 .btn-pop-danger:hover {
     background-color: #ff6b81 !important;
     transform: translate(-2px, -2px);
     box-shadow: 6px 6px 0px #000;
 }
 
-/* Botón GESTIONAR (Naranja Vibrante) */
+/* Botón “Gestionar” para acciones por fila */
 .btn-pop-gestionar {
-    background-color: #ff9f43 !important; /* Naranja */
+    background-color: #ff9f43 !important;
     color: #000 !important;
     font-weight: 900;
     text-transform: uppercase;
@@ -237,6 +250,8 @@ body {
     transition: all 0.1s;
     font-size: 0.85rem;
 }
+
+/* Hover del botón “Gestionar” */
 .btn-pop-gestionar:hover {
     background-color: #ffbe76 !important;
     transform: translate(-2px, -2px);
@@ -244,7 +259,7 @@ body {
     color: #000 !important;
 }
 
-/* Badges de Estado (Pequeños para tabla) */
+/* Badge base de estado */
 .badge-pop {
     display: inline-block;
     padding: 5px 10px;
@@ -255,6 +270,7 @@ body {
     box-shadow: 2px 2px 0px #000;
 }
 
+/* Badges por estado */
 .badge-warning { background-color: #ffa502; color: #000; }
 .badge-success { background-color: #2ed573; color: #000; }
 .badge-danger  { background-color: #ff4757; color: #fff; }

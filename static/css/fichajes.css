@@ -1,7 +1,4 @@
-/* static/css/fichajes.css */
-
-/* --- 1. ESTILOS DE FORMULARIOS (STICKERS) --- */
-
+/* Estilos de cabeceras tipo “sticker” */
 .sticker-label {
     background: #ffde59;
     border: 3px solid #000;
@@ -17,22 +14,21 @@
     font-size: 0.9rem;
 }
 
-/* Input de fecha monoespaciado */
+/* Input datetime: tipografía monoespaciada para mejor lectura */
 input[type="datetime-local"] {
     font-family: 'Courier New', monospace;
     font-weight: bold;
 }
 
-/* --- 2. ESTILOS DE LA TABLA (FILAS Y PUNTOS) --- */
-
+/* Filas de jornada: hover suave */
 .shift-row {
     transition: background-color 0.2s;
 }
 .shift-row:hover {
-    background-color: #fff9db; /* Amarillo muy suave al pasar ratón */
+    background-color: #fff9db;
 }
 
-/* Flecha de tiempo (Icono) */
+/* Icono separador de timeline */
 .timeline-arrow {
     font-size: 1.2rem;
     color: #000;
@@ -40,7 +36,7 @@ input[type="datetime-local"] {
     opacity: 0.3;
 }
 
-/* Puntos de Estado (Status Dots) */
+/* Puntos de estado (activo/cerrado/error/aviso) */
 .status-dot {
     width: 12px;
     height: 12px;
@@ -49,24 +45,23 @@ input[type="datetime-local"] {
     border: 1px solid rgba(0,0,0,0.5);
 }
 
-/* Estados específicos */
 .status-dot.active {
-    background-color: #00ff9d; /* Verde neón */
+    background-color: #00ff9d;
     box-shadow: 0 0 6px #00ff9d;
     animation: pulse 2s infinite;
 }
 
 .status-dot.closed {
-    background-color: #adb5bd; /* Gris */
+    background-color: #adb5bd;
 }
 
 .status-dot.error {
-    background-color: #ff4d6d; /* Rojo Error/Zombie */
+    background-color: #ff4d6d;
     box-shadow: 0 0 6px #ff4d6d;
 }
 
 .status-dot.warning {
-    background-color: #ffca3a; /* Amarillo Warning */
+    background-color: #ffca3a;
 }
 
 @keyframes pulse {
@@ -75,8 +70,7 @@ input[type="datetime-local"] {
     100% { transform: scale(0.95); opacity: 0.7; }
 }
 
-/* --- 3. NUEVOS ESTILOS (BADGES DE HORA) --- */
-
+/* Badges de hora (entrada/salida) */
 .time-badge {
     font-family: 'Courier New', monospace;
     font-weight: 900;
@@ -90,44 +84,42 @@ input[type="datetime-local"] {
 }
 
 .time-badge-entry {
-    background-color: #d0f4de; /* Verde Menta */
+    background-color: #d0f4de;
     color: #000;
 }
 
 .time-badge-exit {
-    background-color: #ff99c8; /* Rosa Chicle */
+    background-color: #ff99c8;
     color: #000;
 }
 
-/* --- 4. NUEVOS ESTILOS (FILTROS) --- */
-
-/* Input Select (Empleados) - Naranja */
+/* Filtros (select/fechas) con color por tipo */
 .filter-input-orange {
-    background-color: #ffca3a !important; /* Naranja Solar */
+    background-color: #ffca3a !important;
     color: #000 !important;
     border: 3px solid #000 !important;
     font-weight: 700;
     box-shadow: 4px 4px 0px #000;
 }
 
-/* Input Date (Fecha) - Azul */
 .filter-input-blue {
-    background-color: #a9def9 !important; /* Azul Cielo */
+    background-color: #a9def9 !important;
     color: #000 !important;
     border: 3px solid #000 !important;
     font-weight: 700;
     box-shadow: 4px 4px 0px #000;
 }
 
-.filter-input-orange:focus, .filter-input-blue:focus {
+.filter-input-orange:focus,
+.filter-input-blue:focus {
     transform: translate(2px, 2px);
     box-shadow: 2px 2px 0px #000;
     outline: none;
 }
 
-/* Botón Filtrar (Morado Vibrante) */
+/* Botón principal de filtro */
 .btn-filter-action {
-    background-color: #c77dff; /* Morado Eléctrico */
+    background-color: #c77dff;
     color: #000;
     font-weight: 900;
     border: 3px solid #000;
@@ -141,9 +133,7 @@ input[type="datetime-local"] {
     box-shadow: 6px 6px 0px #000;
 }
 
-/* ... (MANTÉN TU CÓDIGO ACTUAL ARRIBA: sticker-label, time-badge, etc.) ... */
-
-/* --- 5. TARJETA RESUMEN MENSUAL (NUEVO) --- */
+/* Tarjeta de resumen (teóricas/trabajadas/saldo) */
 .summary-card {
     background-color: #fff;
     border: 4px solid #000;
@@ -170,6 +160,7 @@ input[type="datetime-local"] {
     z-index: 10;
 }
 
+/* Bloques de estadísticas dentro del resumen */
 .stat-box {
     text-align: center;
     border: 3px solid #000;
@@ -204,7 +195,7 @@ input[type="datetime-local"] {
     letter-spacing: 0.5px;
 }
 
-/* Colores de Estado Pop */
+/* Colores rápidos para marcar estado del saldo */
 .bg-green-pop { background-color: #00ff9d !important; color: #000; }
 .bg-red-pop { background-color: #ff4757 !important; color: #fff; }
 .bg-yellow-pop { background-color: #ffca3a !important; color: #000; }
@@ -214,9 +205,9 @@ input[type="datetime-local"] {
     to { opacity: 1; transform: translateY(0); }
 }
 
-
+/* Botón secundario estilo warning (acciones destacadas) */
 .btn-pop-warning {
-    background-color: #ff9f43; /* Naranja */
+    background-color: #ff9f43;
     color: #000;
     border: 3px solid #000;
     box-shadow: 4px 4px 0px #000;

@@ -63,6 +63,19 @@
                     </div>
                 </div>
 
+                <div class="sticker-label mt-5" style="background: #ffc8dd;">Control de Acceso (Torno)</div>
+                <div class="card card-pop pt-4">
+                    <div class="card-body p-4">
+                        <div class="mb-2">
+                            <label class="form-label">Código NFC Maestro</label>
+                            {{ form.codigo_nfc_oficina(class="form-control", placeholder="Ej: 04A1B2C3") }}
+                        </div>
+                        <div class="small fw-bold text-muted">
+                            Si defines este código, será obligatorio escanear esta etiqueta física para fichar. Déjalo vacío para permitir fichaje solo por GPS.
+                        </div>
+                    </div>
+                </div>
+
                 <div class="d-grid gap-3 mt-4">
                     <button type="submit" class="btn btn-pop btn-pop-success py-3 fs-5">
                         <i class="ph-bold ph-check-circle"></i> GUARDAR CAMBIOS

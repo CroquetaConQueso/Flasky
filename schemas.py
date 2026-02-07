@@ -1,6 +1,6 @@
 from marshmallow import Schema, fields
 
-# --- ESQUEMAS BÁSICOS ---
+# Esquemas base: campos comunes para reutilizar en anidados (Nested)
 
 class PlainEmpresaSchema(Schema):
     id_empresa = fields.Int(dump_only=True)
@@ -35,7 +35,7 @@ class PlainFichajeSchema(Schema):
     latitud = fields.Float()
     longitud = fields.Float()
 
-# --- LOGIN & PASSWORD ---
+# Auth: payloads de login y recuperación/cambio de contraseña
 
 class UserLoginSchema(Schema):
     nif = fields.String(required=True)
@@ -46,12 +46,13 @@ class PasswordResetSchema(Schema):
     email = fields.String(load_default=None)
     nif = fields.String(load_default=None)
 
-# --- ESQUEMAS COMPLETOS (Relationships) ---
+# Esquemas completos: incluyen relaciones y campos derivados para la app
 
 class TrabajadorSchema(PlainTrabajadorSchema):
     idEmpresa = fields.Int(required=True, load_only=True)
     idRol = fields.Int(required=True, load_only=True)
     idHorario = fields.Int(load_only=True)
+
     rol_nombre = fields.String(attribute="rol.nombre_rol", dump_only=True)
 
     empresa = fields.Nested(PlainEmpresaSchema(), dump_only=True)
@@ -77,7 +78,7 @@ class IncidenciaSchema(Schema):
     comentario_admin = fields.String(dump_only=True)
     trabajador = fields.Nested(PlainTrabajadorSchema(), dump_only=True)
 
-# --- EXTRAS PARA APP ---
+# App: DTOs específicos para endpoints (fichajes, incidencias, resumen, fcm)
 
 class FichajeInputSchema(Schema):
     latitud = fields.Float(required=True)
@@ -93,7 +94,7 @@ class FichajeOutputSchema(Schema):
 
 class ChangePasswordSchema(Schema):
     current_password = fields.String(required=True)
-    new_password = fields.String(required=True) # Sin validación de longitud mínima
+    new_password = fields.String(required=True)
 
 class IncidenciaCreateSchema(Schema):
     tipo = fields.String(required=True)

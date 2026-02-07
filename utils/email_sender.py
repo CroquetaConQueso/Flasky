@@ -4,6 +4,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from flask import current_app
 
+# Envío SMTP de correo de recuperación (password temporal)
 def enviar_correo_password(destinatario, nombre_usuario, nueva_password):
     try:
         smtp_server = current_app.config.get('MAIL_SERVER')
@@ -69,7 +70,8 @@ def enviar_correo_password(destinatario, nombre_usuario, nueva_password):
         print(f"[ERROR] Fallo enviando correo password: {e}")
         return False
 
-# --- FUNCIÓN ACTUALIZADA CON TRADUCCIÓN DE TEXTOS ---
+
+# Envío SMTP de resolución de incidencia (aprobada/rechazada)
 def enviar_correo_resolucion(destinatario, nombre, tipo_incidencia, estado, comentario_admin, f_inicio, f_fin):
     try:
         smtp_server = current_app.config.get('MAIL_SERVER')
@@ -83,7 +85,6 @@ def enviar_correo_resolucion(destinatario, nombre, tipo_incidencia, estado, come
         else:
             sender_display_name = "RRHH"
 
-        # DICCIONARIO DE TRADUCCIÓN (Para que no salga ASUNTOS_PROPIOS)
         traducciones_tipo = {
             'VACACIONES': 'Vacaciones',
             'BAJA': 'Baja Médica',
@@ -91,7 +92,6 @@ def enviar_correo_resolucion(destinatario, nombre, tipo_incidencia, estado, come
             'OLVIDO': 'Olvido de Fichaje',
             'HORAS_EXTRA': 'Horas Extra'
         }
-        # Si el tipo no está en la lista, quitamos guiones y capitalizamos como plan B
         tipo_legible = traducciones_tipo.get(tipo_incidencia, tipo_incidencia.replace('_', ' ').capitalize())
 
         msg = MIMEMultipart("alternative")
@@ -108,7 +108,6 @@ def enviar_correo_resolucion(destinatario, nombre, tipo_incidencia, estado, come
             titulo_estado = "SOLICITUD RECHAZADA"
             texto_intro = "Tu solicitud no ha podido ser aceptada."
 
-        # Texto plano
         text = f"""
         Hola {nombre},
 
@@ -123,7 +122,6 @@ def enviar_correo_resolucion(destinatario, nombre, tipo_incidencia, estado, come
         {comentario_admin}
         """
 
-        # HTML con estilo
         html = f"""
         <html>
           <body style="font-family: Arial, sans-serif; color: #000; background-color: #f4f4f4;">
@@ -175,11 +173,10 @@ def enviar_correo_resolucion(destinatario, nombre, tipo_incidencia, estado, come
         print(f"[ERROR] Fallo enviando correo resolucion: {e}")
         return False
 
-# Funcion para enviar los correos si no ficha un día en el que debe
+
+# Envío SMTP de alerta por ausencia de fichaje
 def enviar_correo_ausencia(destinatario, nombre):
-    """Envía un aviso al empleado de que no ha registrado su entrada (Versión SMTP Manual)."""
     try:
-        # 1. Recuperar credenciales igual que en las otras funciones
         smtp_server = current_app.config.get('MAIL_SERVER')
         smtp_port = current_app.config.get('MAIL_PORT')
         sender_email = current_app.config.get('MAIL_USERNAME')
@@ -191,13 +188,11 @@ def enviar_correo_ausencia(destinatario, nombre):
         else:
             sender_display_name = "RRHH Alertas"
 
-        # 2. Configurar mensaje
         msg = MIMEMultipart("alternative")
         msg["Subject"] = "ALERTA: Ausencia de Fichaje detectada"
         msg["From"] = f"{sender_display_name} <{sender_email}>"
         msg["To"] = destinatario
 
-        # 3. Contenido Texto Plano
         text = f"""
         Hola {nombre},
 
@@ -206,7 +201,6 @@ def enviar_correo_ausencia(destinatario, nombre):
         Por favor, accede a la aplicación para fichar o contacta con RRHH si es un error.
         """
 
-        # 4. Contenido HTML (Estilo Pop consistente)
         html = f"""
         <html>
           <body style="font-family: Arial, sans-serif; color: #000; background-color: #f4f4f4;">
@@ -238,8 +232,8 @@ def enviar_correo_ausencia(destinatario, nombre):
         msg.attach(part1)
         msg.attach(part2)
 
-        # 5. Enviar usando smtplib
         context = ssl.create_default_context()
+
         with smtplib.SMTP(smtp_server, smtp_port) as server:
             server.ehlo()
             server.starttls(context=context)

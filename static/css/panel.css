@@ -1,25 +1,27 @@
-/* static/css/panel.css */
-
-/* --- ESTILO BASE: NEO-BRUTALISM POP (TRENDY) --- */
 
 body {
-    background-color: #fff9f0; /* Crema suave */
+    background-color: #fff9f0;
     color: #000;
     font-family: 'Verdana', sans-serif;
 }
 
-/* Banner */
+/* Banner principal de bienvenida */
 .welcome-banner {
-    background-color: #ffde59; /* Amarillo */
+    background-color: #ffde59;
     border: 3px solid #000;
-    box-shadow: 6px 6px 0px #000; /* Sombra dura negra */
+    box-shadow: 6px 6px 0px #000;
     padding: 2.5rem;
     border-radius: 12px;
     margin-bottom: 2rem;
 }
-.welcome-banner h2 { font-weight: 900; font-size: 2.5rem; }
 
-/* Título */
+/* Título dentro del banner */
+.welcome-banner h2 {
+    font-weight: 900;
+    font-size: 2.5rem;
+}
+
+/* Títulos de sección tipo “etiqueta” */
 .section-title {
     background: #000;
     color: #fff;
@@ -27,12 +29,12 @@ body {
     padding: 10px 20px;
     font-weight: 900;
     text-transform: uppercase;
-    transform: rotate(-2deg); /* Inclinación divertida */
+    transform: rotate(-2deg);
     margin: 3rem 0 2rem 0;
     box-shadow: 4px 4px 0px #888;
 }
 
-/* Tarjetas Base (Stats y Acciones Normales) */
+/* Tarjetas base: métricas y accesos */
 .stat-card, .action-card {
     border: 3px solid #000;
     border-radius: 12px;
@@ -43,24 +45,29 @@ body {
     display: block;
     transition: all 0.2s;
     background: white;
-    box-shadow: 5px 5px 0px #000; /* Sombra dura */
+    box-shadow: 5px 5px 0px #000;
 }
 
-/* Colores específicos para cada tarjeta de Stats */
-.col-md-3:nth-child(1) .stat-card { background: #ff99c8; } /* Rosa */
-.col-md-3:nth-child(2) .stat-card { background: #d0f4de; } /* Verde menta */
-.col-md-3:nth-child(3) .stat-card { background: #a9def9; } /* Azul cielo */
-.col-md-3:nth-child(4) .stat-card { background: #e4c1f9; } /* Lila */
+/* Colores de tarjetas de métricas por posición */
+.col-md-3:nth-child(1) .stat-card { background: #ff99c8; }
+.col-md-3:nth-child(2) .stat-card { background: #d0f4de; }
+.col-md-3:nth-child(3) .stat-card { background: #a9def9; }
+.col-md-3:nth-child(4) .stat-card { background: #e4c1f9; }
 
-/* Hover Acciones Normales */
+/* Hover para tarjetas de acción */
 .action-card:hover {
     transform: translate(-3px, -3px);
     box-shadow: 8px 8px 0px #000;
     background: #fff;
 }
 
-/* Estilos de texto Base */
-.stat-info h3 { font-weight: 900; font-size: 2.5rem; }
+/* Número destacado en tarjetas de métricas */
+.stat-info h3 {
+    font-weight: 900;
+    font-size: 2.5rem;
+}
+
+/* Título de tarjeta de acción */
 .action-title { 
     font-weight: 900; 
     font-size: 1.4rem; 
@@ -71,19 +78,28 @@ body {
     border: 2px solid black; 
     padding: 2px 5px;
 }
-.action-desc { font-weight: 500; font-size: 0.9rem; }
 
-/* Iconos Base */
-.action-icon, .stat-icon { font-size: 3rem; filter: drop-shadow(2px 2px 0 #000); }
+/* Descripción breve bajo el título */
+.action-desc {
+    font-weight: 500;
+    font-size: 0.9rem;
+}
 
-/* Layout ancho */
-.action-wide { text-align: left; }
-.action-wide .action-icon { margin-right: 20px; }
+/* Iconos de tarjetas */
+.action-icon, .stat-icon {
+    font-size: 3rem;
+    filter: drop-shadow(2px 2px 0 #000);
+}
 
+/* Layout horizontal para acciones “wide” */
+.action-wide {
+    text-align: left;
+}
+.action-wide .action-icon {
+    margin-right: 20px;
+}
 
-/* --- NUEVO: ZONA SUPERADMIN (POP RADICAL) --- */
-
-/* Título de Zona God Mode */
+/* Título de la sección de superadmin */
 .super-zone-title {
     background-color: #000;
     color: #fff;
@@ -93,13 +109,13 @@ body {
     padding: 10px 20px;
     display: inline-block;
     transform: rotate(-2deg);
-    box-shadow: 5px 5px 0px #ffde59; /* Sombra Amarilla */
+    box-shadow: 5px 5px 0px #ffde59;
     margin-bottom: 40px;
     margin-top: 60px;
     border: 3px solid #fff;
 }
 
-/* Estilo Base de las Tarjetas Radicales */
+/* Tarjetas “radical” para acciones críticas */
 .radical-card {
     display: flex;
     flex-direction: column;
@@ -112,17 +128,17 @@ body {
     transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     position: relative;
     overflow: hidden;
-    border-radius: 0px; /* Bordes cuadrados más agresivos */
+    border-radius: 0px;
 }
 
-/* Efecto Hover Radical: Salto y Rotación */
+/* Hover agresivo para tarjetas radical */
 .radical-card:hover {
     transform: translate(-8px, -8px) rotate(1deg);
     box-shadow: 15px 15px 0px #000;
     z-index: 10;
 }
 
-/* Icono Gigante de fondo */
+/* Icono de fondo decorativo en tarjetas radical */
 .radical-bg-icon {
     position: absolute;
     bottom: -20px;
@@ -134,7 +150,7 @@ body {
     pointer-events: none;
 }
 
-/* Textos Radicales */
+/* Título principal de tarjeta radical */
 .radical-title {
     font-size: 2rem;
     font-weight: 900;
@@ -147,6 +163,7 @@ body {
     text-shadow: 2px 2px 0px #fff;
 }
 
+/* Descripción/etiqueta secundaria en tarjeta radical */
 .radical-desc {
     font-size: 1rem;
     font-weight: 700;
@@ -158,18 +175,16 @@ body {
     box-shadow: 3px 3px 0px rgba(0,0,0,0.2);
 }
 
-/* --- COLORES RADICALES --- */
-
-/* 1. EMPRESAS: Rosa Pop */
+/* Variante “Empresas” */
 .radical-empresas {
-    background-color: #ff9ff3; 
+    background-color: #ff9ff3;
     box-shadow: 8px 8px 0px #000;
 }
 .radical-empresas:hover {
     background-color: #ff79e8;
 }
 
-/* 2. ROLES: Azul Eléctrico */
+/* Variante “Roles” */
 .radical-roles {
     background-color: #54a0ff;
     box-shadow: 8px 8px 0px #000;

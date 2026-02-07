@@ -7,7 +7,7 @@ import calendar
 app = create_app()
 
 def init_db():
-    print("[INFO] Borrando base de datos...")
+    print("Borrando base de datos...")
     # Desactivar validacion de claves foraneas para limpiar todo
     db.session.execute(db.text("SET FOREIGN_KEY_CHECKS = 0"))
     db.session.commit()
@@ -17,17 +17,17 @@ def init_db():
     db.session.execute(db.text("SET FOREIGN_KEY_CHECKS = 1"))
     db.session.commit()
     
-    print("[INFO] Creando tablas nuevas...")
+    print("Creando tablas nuevas...")
     db.create_all()
 
 with app.app_context():
-    print("[INFO] Iniciando carga de datos de prueba...")
+    print("Iniciando carga de datos de prueba...")
     
     # 1. Reiniciar Tablas
     init_db()
 
     # 2. Crear Empresa
-    print("[INFO] Creando empresa...")
+    print("Creando empresa...")
     empresa = Empresa(
         nombrecomercial="Empresa Demo",
         cif="A12345678",
@@ -39,7 +39,7 @@ with app.app_context():
     db.session.commit()
 
     # 3. Crear Roles
-    print("[INFO] Creando roles...")
+    print("Creando roles...")
     rol_admin = Rol(nombre_rol="Administrador")
     rol_super = Rol(nombre_rol="Superadministrador")
     rol_empleado = Rol(nombre_rol="Empleado")
@@ -47,7 +47,7 @@ with app.app_context():
     db.session.commit()
 
     # 4. Crear Dias
-    print("[INFO] Creando dias...")
+    print("Creando dias...")
     nombres_dias = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"]
     dias_objs = {}
     for nombre in nombres_dias:
@@ -57,7 +57,7 @@ with app.app_context():
     db.session.commit()
 
     # 5. Crear Horario y Franjas
-    print("[INFO] Creando horario y franjas...")
+    print("Creando horario y franjas...")
     horario = Horario(
         nombre_horario="Horario General",
         descripcion="Jornada intensiva de mañanas (08:00 - 15:00)",
@@ -81,7 +81,7 @@ with app.app_context():
     db.session.commit()
 
     # 6. Crear Empleados
-    print("[INFO] Creando empleados...")
+    print("Creando empleados...")
     
     # IMPORTANTE: Pasamos passw="temp" en el constructor para cumplir la restriccion NOT NULL de la BDD.
     # Inmediatamente despues, set_password calculara el hash correcto y lo sobrescribira.
@@ -146,7 +146,7 @@ with app.app_context():
     db.session.commit()
 
     # 7. Generar Fichajes
-    print("[INFO] Generando fichajes del mes actual...")
+    print("Generando fichajes del mes actual...")
     today = datetime.now()
     
     for day in range(1, today.day + 1):
@@ -169,7 +169,7 @@ with app.app_context():
     db.session.commit()
 
     # 8. Crear Incidencias de Prueba
-    print("[INFO] Creando incidencias de prueba...")
+    print("Creando incidencias de prueba...")
     inc1 = Incidencia(
         id_trabajador=extra.id_trabajador,
         tipo="VACACIONES",
@@ -190,4 +190,4 @@ with app.app_context():
     db.session.add_all([inc1, inc2])
     db.session.commit()
 
-    print("[SUCCESS] Datos de ejemplo cargados correctamente.")
+    print("Datos de ejemplo cargados correctamente.")

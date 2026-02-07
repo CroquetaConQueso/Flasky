@@ -1,25 +1,24 @@
-/* --- ESTILO POP NEO-BRUTALISM --- */
 
-/* Ajuste del Mapa */
 #map {
+    /* Contenedor del mapa */
     height: 500px;
     width: 100%;
     border: 4px solid #000;
-    border-radius: 12px; /* Bordes ligeramente redondeados pero duros */
-    box-shadow: 8px 8px 0px #000; /* Sombra dura desplazada */
-    background-color: #e9ecef; /* Color de carga */
+    border-radius: 12px;
+    box-shadow: 8px 8px 0px #000;
+    background-color: #e9ecef;
 }
 
-/* Etiqueta flotante (Sticker) */
 .sticker-label {
-    background-color: #ffde59; /* Amarillo intenso */
+    /* Etiqueta tipo “sticker” encima de la tarjeta */
+    background-color: #ffde59;
     color: #000;
     border: 3px solid #000;
     padding: 8px 20px;
     font-weight: 900;
     display: inline-block;
-    transform: rotate(-2deg); /* Inclinación divertida */
-    margin-bottom: -20px; /* Superposición sobre la tarjeta */
+    transform: rotate(-2deg);
+    margin-bottom: -20px;
     position: relative;
     z-index: 10;
     box-shadow: 4px 4px 0px #000;
@@ -28,17 +27,17 @@
     letter-spacing: 1px;
 }
 
-/* Tarjeta Principal */
 .card-pop {
+    /* Tarjeta principal de la vista */
     background-color: #fff;
     border: 4px solid #000;
     border-radius: 12px;
-    box-shadow: 10px 10px 0px #000; /* Sombra muy marcada */
+    box-shadow: 10px 10px 0px #000;
     transition: transform 0.2s ease;
 }
 
-/* Labels de formulario */
 .form-label {
+    /* Label de formulario (compacto y en mayúsculas) */
     font-weight: 800;
     text-transform: uppercase;
     font-size: 0.8rem;
@@ -47,10 +46,10 @@
     letter-spacing: 0.5px;
 }
 
-/* Inputs (Campos de texto) */
 .form-control {
+    /* Input base (borde duro y fondo claro) */
     background-color: #f8f9fa;
-    border: 3px solid #000 !important; /* Borde grueso negro siempre */
+    border: 3px solid #000 !important;
     border-radius: 8px !important;
     color: #000;
     font-weight: 700;
@@ -59,28 +58,30 @@
 }
 
 .form-control:focus {
+    /* Enfoque: sube y añade sombra dura */
     background-color: #fff;
     border-color: #000;
-    box-shadow: 5px 5px 0px #000 !important; /* Sombra al hacer click */
-    transform: translate(-2px, -2px); /* Pequeño movimiento al enfocar */
+    box-shadow: 5px 5px 0px #000 !important;
+    transform: translate(-2px, -2px);
 }
 
 .form-control::placeholder {
+    /* Placeholder más suave */
     color: #999;
     font-weight: 500;
     text-transform: none;
 }
 
-/* Inputs de solo lectura (Lat/Long) */
 .form-control[readonly] {
-    background-color: #e9ecef; /* Gris claro */
+    /* Inputs no editables (lat/lon) */
+    background-color: #e9ecef;
     color: #555;
-    border-style: dashed !important; /* Borde discontinuo para indicar que no se toca */
+    border-style: dashed !important;
     cursor: not-allowed;
 }
 
-/* Grupo de Inputs (Radio + MTS) */
 .input-group {
+    /* Grupo visual (radio + sufijo) */
     border: 3px solid #000;
     border-radius: 8px;
     overflow: hidden;
@@ -88,11 +89,13 @@
 }
 
 .input-group .form-control {
-    border: none !important; /* Quitamos borde interno para que se fusione */
+    /* Unifica el input con el grupo (sin borde interno) */
+    border: none !important;
     border-radius: 0 !important;
 }
 
 .input-group-text {
+    /* Sufijo del grupo (ej: “MTS”) */
     background-color: #000 !important;
     color: #fff !important;
     border: none;
@@ -100,8 +103,8 @@
     padding: 0 15px;
 }
 
-/* Botones específicos de esta vista */
 .btn-pop {
+    /* Botón base de esta vista */
     border: 3px solid #000;
     font-weight: 900;
     text-transform: uppercase;
@@ -111,22 +114,26 @@
 }
 
 .btn-pop:hover {
+    /* Hover: eleva el botón */
     transform: translate(-2px, -2px);
     box-shadow: 7px 7px 0px #000;
 }
 
 .btn-pop:active {
+    /* Click: efecto hundido */
     transform: translate(2px, 2px);
     box-shadow: 1px 1px 0px #000;
 }
 
 .btn-pop-success {
-    background-color: #2ed573; /* Verde Pop */
+    /* Acción positiva (guardar) */
+    background-color: #2ed573;
     color: #000;
 }
 
 .btn-pop-danger {
-    background-color: #ff4757; /* Rojo Pop */
+    /* Acción de riesgo (cancelar/salir) */
+    background-color: #ff4757;
     color: #fff;
     text-decoration: none;
     display: flex;
@@ -135,5 +142,6 @@
 }
 
 .btn-pop-danger:hover {
+    /* Mantiene contraste en hover */
     color: #fff;
 }

@@ -13,11 +13,10 @@ from models import Trabajador, Fichaje, Dia, Franja
 from schemas import UserLoginSchema, PasswordResetSchema, ChangePasswordSchema, FcmTokenSchema
 from utils.email_sender import enviar_correo_password
 
-# OJO: si quieres seguir enviando push desde login, descomenta:
-# from utils.firebase_sender import enviar_notificacion_push
 
 blp = Blueprint("auth", __name__, description="Autenticacion y Tokens")
 
+# Mapa weekday() -> nombre de día en BD (IMPORTANTE: coincide con tu tabla Dia.nombre)
 DIAS_SEMANA = {
     0: "lunes",
     1: "martes",
@@ -32,8 +31,12 @@ DIAS_SEMANA = {
 GRACE_MINUTES = 10
 
 
+# ------------------------------
+# HELPERS: Recordatorio de fichaje
+# ------------------------------
+
 def _get_franjas_hoy(trabajador: Trabajador, hoy_fecha):
-    """Devuelve lista de franjas de hoy para el horario del trabajador."""
+    """Devuelve lista de franjas de HOY para el horario del trabajador."""
     if not trabajador.idHorario:
         return []
 
@@ -66,7 +69,13 @@ def _tiene_entrada_hoy(trabajador: Trabajador, hoy_fecha):
 def _debe_avisar_fichaje(trabajador: Trabajador):
     """
     Devuelve (debe_avisar, titulo, mensaje, trabaja_hoy, hora_entrada_str)
-    Avisamos si hoy trabaja, ya pasó la hora de entrada (+ margen), y no hay ENTRADA hoy.
+
+    Avisamos si:
+      - hoy trabaja (tiene franjas hoy)
+      - ya pasó la hora de entrada (+ GRACE_MINUTES)
+      - y NO hay ENTRADA hoy
+
+    Nota: Si no hay hora_entrada en BD, NO avisamos (evita falsos positivos).
     """
     ahora = datetime.now()
     hoy_fecha = ahora.date()
@@ -79,16 +88,16 @@ def _debe_avisar_fichaje(trabajador: Trabajador):
     hora_entrada_min = min((f.hora_entrada for f in franjas if f.hora_entrada), default=None)
     hora_entrada_str = hora_entrada_min.strftime("%H:%M") if hora_entrada_min else None
 
-    # Si no tenemos hora_entrada, no avisamos (evita falsos positivos)
     if not hora_entrada_min:
         return (False, None, None, True, None)
 
     limite_aviso = datetime.combine(hoy_fecha, hora_entrada_min) + timedelta(minutes=GRACE_MINUTES)
+
+    # Aún es pronto -> no avisamos
     if ahora < limite_aviso:
-        # Aún no toca avisar
         return (False, None, None, True, hora_entrada_str)
 
-    # Ya es hora de haber fichado -> comprobamos si tiene ENTRADA hoy
+    # Si ya fichó entrada -> no avisamos
     if _tiene_entrada_hoy(trabajador, hoy_fecha):
         return (False, None, None, True, hora_entrada_str)
 
@@ -100,18 +109,25 @@ def _debe_avisar_fichaje(trabajador: Trabajador):
     return (True, titulo, mensaje, True, hora_entrada_str)
 
 
+# ------------------------------
+# ENDPOINT: /login
+# ------------------------------
+
 @blp.route("/login")
 class Login(MethodView):
     @blp.arguments(UserLoginSchema)
     def post(self, user_data):
+        # Log para depuración (en stderr para que lo recoja el server log)
         print(f"[LOGIN] Intento de acceso raw: {user_data.get('nif')}", file=sys.stderr)
 
         ident_raw = (user_data.get("nif") or "").strip().upper()
         password_raw = user_data.get("password") or ""
 
+        # Respuesta uniforme (no filtramos si existe usuario o no)
         if not ident_raw or not password_raw:
             abort(401, message="Credenciales incorrectas")
 
+        # Login por NIF o Email (case-insensitive + trim)
         trabajador = Trabajador.query.filter(
             or_(
                 func.upper(func.trim(Trabajador.nif)) == ident_raw,
@@ -129,45 +145,28 @@ class Login(MethodView):
 
         print(f"[LOGIN] Éxito: {trabajador.nombre} ha entrado.", file=sys.stderr)
 
-        # --- AVISO: hoy trabaja + NO hay ENTRADA hoy ---
+        # --- Recordatorio al loguear (si hoy trabaja y no tiene ENTRADA, y ya pasó el margen) ---
         recordatorio = {"avisar": False}
 
         try:
-            ahora = datetime.now()
-            hoy = ahora.date()
-            nombre_dia = DIAS_SEMANA.get(hoy.weekday())
+            debe_avisar, titulo, mensaje, _, _ = _debe_avisar_fichaje(trabajador)
+            if debe_avisar:
+                recordatorio = {
+                    "avisar": True,
+                    "titulo": titulo,
+                    "mensaje": mensaje
+                }
+                print(f"[LOGIN] ALERTA: {trabajador.nombre} NO tiene ENTRADA hoy.", file=sys.stderr)
 
-            if trabajador.idHorario and nombre_dia:
-                dia_db = Dia.query.filter_by(nombre=nombre_dia).first()
-                if dia_db:
-                    # trabaja hoy si hay franjas para su horario y ese día
-                    franjas_hoy = Franja.query.filter_by(
-                        id_horario=trabajador.idHorario,
-                        id_dia=dia_db.id
-                    ).all()
-
-                    if franjas_hoy:
-                        inicio_dia = datetime.combine(hoy, dtime.min)
-                        fin_dia = datetime.combine(hoy, dtime.max)
-
-                        fichaje_hoy = Fichaje.query.filter(
-                            Fichaje.id_trabajador == trabajador.id_trabajador,
-                            func.upper(func.trim(Fichaje.tipo)) == "ENTRADA",
-                            Fichaje.fecha_hora >= inicio_dia,
-                            Fichaje.fecha_hora <= fin_dia
-                        ).first()
-
-                        if not fichaje_hoy:
-                            recordatorio = {
-                                "avisar": True,
-                                "titulo": "⚠️ ¡No has fichado!",
-                                "mensaje": f"Hola {trabajador.nombre}, hoy trabajas y no consta tu ENTRADA. Regístrala cuanto antes."
-                            }
-                            print(f"[LOGIN] ALERTA: {trabajador.nombre} NO tiene ENTRADA hoy.", file=sys.stderr)
+                # Si quieres push aquí (opcional):
+                # if trabajador.fcm_token:
+                #     enviar_notificacion_push(trabajador.fcm_token, titulo, mensaje)
 
         except Exception as e:
+            # No debe romper login por un fallo de recordatorio
             print(f"[LOGIN] Error calculando recordatorio (no crítico): {e}", file=sys.stderr)
 
+        # Token JWT: identidad = id_trabajador
         access_token = create_access_token(identity=str(trabajador.id_trabajador))
 
         return {
@@ -180,10 +179,15 @@ class Login(MethodView):
         }
 
 
+# ------------------------------
+# ENDPOINT: /reset-password
+# ------------------------------
+
 @blp.route("/reset-password")
 class PasswordReset(MethodView):
     @blp.arguments(PasswordResetSchema)
     def post(self, user_data):
+        # Acepta "identificador" (tu app), pero también soporta "email" o "nif"
         raw_identificador = user_data.get("identificador") or user_data.get("email") or user_data.get("nif")
         if not raw_identificador:
             abort(422, message="Debes proporcionar tu Email o NIF.")
@@ -198,14 +202,16 @@ class PasswordReset(MethodView):
             )
         ).first()
 
+        # Respuesta “segura”: no confirmamos si existe o no
         if not trabajador:
             return {"message": "Si los datos son correctos, recibirás un correo"}, 200
 
         if not trabajador.email:
             return {"message": "Este usuario no tiene email configurado"}, 400
 
+        # Generar nueva contraseña simple (8 chars) y enviarla
         caracteres = string.ascii_letters + string.digits
-        nueva_pass = ''.join(random.choice(caracteres) for i in range(8))
+        nueva_pass = ''.join(random.choice(caracteres) for _ in range(8))
 
         trabajador.set_password(nueva_pass)
         db.session.commit()
@@ -214,6 +220,10 @@ class PasswordReset(MethodView):
         return {"message": "Contraseña enviada al correo"}, 200
 
 
+# ------------------------------
+# ENDPOINT: /change-password
+# ------------------------------
+
 @blp.route("/change-password")
 class ChangePassword(MethodView):
     @jwt_required()
@@ -221,6 +231,7 @@ class ChangePassword(MethodView):
     def post(self, user_data):
         user_id = get_jwt_identity()
         trabajador = Trabajador.query.get(user_id)
+
         if not trabajador:
             abort(404, message="Usuario no encontrado")
 
@@ -235,6 +246,10 @@ class ChangePassword(MethodView):
         return {"message": "Contraseña actualizada correctamente"}, 200
 
 
+# ------------------------------
+# ENDPOINT: /save-fcm-token
+# ------------------------------
+
 @blp.route("/save-fcm-token")
 class SaveFcmToken(MethodView):
     @jwt_required()
@@ -242,8 +257,10 @@ class SaveFcmToken(MethodView):
     def post(self, token_data):
         user_id = get_jwt_identity()
         trabajador = Trabajador.query.get(user_id)
+
         if trabajador:
             trabajador.fcm_token = token_data["token"]
             db.session.commit()
             return {"message": "Token guardado correctamente"}, 200
+
         abort(404, message="Usuario no encontrado")
