@@ -117,27 +117,43 @@ def _crear_fichaje(trabajador: Trabajador, lat: float, lon: float):
 # --- LÓGICA CENTRAL DE FICHAJE (NUEVA) ---
 def _procesar_fichaje_comun(user_id, lat, lon, nfc_data_raw=None):
     """
-    Función helper que contiene toda la lógica de validación y creación,
-    pero SIN decoradores web para evitar conflictos.
+    Función helper que contiene toda la lógica de validación y creación.
+    Prioriza el NFC de Oficina (Torno) sobre el NFC Personal si está configurado.
     """
     trabajador = Trabajador.query.get_or_404(user_id)
     empresa = trabajador.empresa
 
-    # Validación NFC si se proporciona
-    nfc_recibido = _normalizar_uid(nfc_data_raw)
-    if nfc_recibido:
-        # Recuperamos el UID de la base de datos de forma segura
-        uid_guardado = _normalizar_uid(getattr(trabajador, "codigo_nfc", None))
-        
-        # Generamos la versión invertida por si el lector lee little-endian
+    # 1. VALIDACIÓN MODO "TORNO" (NFC PRINCIPAL DE EMPRESA)
+    # Comprobamos si la empresa tiene configurada una etiqueta maestra en la BD
+    nfc_oficina_requerido = _normalizar_uid(getattr(empresa, "codigo_nfc_oficina", None))
+
+    if nfc_oficina_requerido:
+        # Si hay NFC de oficina, es OBLIGATORIO escanear ese, ignorando el personal
+        nfc_recibido = _normalizar_uid(nfc_data_raw)
+
+        if not nfc_recibido:
+            abort(400, message="Fichaje restringido: Debes escanear el punto NFC de la entrada.")
+
+        # Comprobamos normal e invertido
         uid_inv = _uid_invertido(nfc_recibido)
 
-        # Si el usuario no tiene tarjeta asignada O no coincide ninguna versión
-        if not uid_guardado or (nfc_recibido != uid_guardado and uid_inv != uid_guardado):
-            abort(403, message="Código NFC no válido o no asignado a este usuario.")
+        if nfc_recibido != nfc_oficina_requerido and uid_inv != nfc_oficina_requerido:
+            abort(403, message="NFC Incorrecto. Asegúrate de escanear la etiqueta oficial de la entrada.")
 
-    # Validaciones comunes
+    else:
+        # 2. VALIDACIÓN MODO "PERSONAL" (Lógica antigua)
+        # Si la empresa NO tiene NFC principal, validamos la tarjeta del usuario (si la usa)
+        nfc_recibido = _normalizar_uid(nfc_data_raw)
+        if nfc_recibido:
+            uid_guardado = _normalizar_uid(getattr(trabajador, "codigo_nfc", None))
+            uid_inv = _uid_invertido(nfc_recibido)
+
+            if not uid_guardado or (nfc_recibido != uid_guardado and uid_inv != uid_guardado):
+                abort(403, message="Código NFC no válido o no asignado a este usuario.")
+
+    # Validaciones comunes (GPS)
     _validar_distancia_empresa(empresa, lat, lon)
+
     return _crear_fichaje(trabajador, lat, lon)
 
 # =========================================================
@@ -170,7 +186,7 @@ class ResumenMensual(MethodView):
             dia_db = Dia.query.filter_by(nombre=nombre).first()
             if dia_db:
                 franjas = Franja.query.filter_by(id_horario=trabajador.idHorario, id_dia=dia_db.id).all()
-                sec = sum([(timedelta(hours=f.hora_salida.hour, minutes=f.hora_salida.minute) - 
+                sec = sum([(timedelta(hours=f.hora_salida.hour, minutes=f.hora_salida.minute) -
                             timedelta(hours=f.hora_entrada.hour, minutes=f.hora_entrada.minute)).total_seconds() for f in franjas])
                 horas_por_weekday[wd] = sec
             else:
@@ -249,9 +265,9 @@ class FichajesEmpleado(MethodView):
         ok, rol = es_admin_robusto(yo)
         if not ok:
             abort(403, message="No eres admin.")
-        
+
         target = Trabajador.query.get_or_404(empleado_id)
         if target.idEmpresa != yo.idEmpresa and "SUPER" not in rol:
             abort(404, message="Empleado no encontrado.")
-            
+
         return Fichaje.query.filter_by(id_trabajador=empleado_id).order_by(Fichaje.fecha_hora.desc()).limit(100).all()

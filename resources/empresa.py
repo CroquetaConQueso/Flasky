@@ -138,7 +138,7 @@ class EmpleadoList(MethodView):
         return trabajador.empresa.trabajadores
 
 # ---- PARA ESTABLECER EL NFC PRINCIPAL
-@blp.route("/config-nfc")
+@blp.route("/empresa/config-nfc")
 class EmpresaNfcConfig(MethodView):
     @jwt_required()
     @blp.arguments(FichajeNFCInputSchema)

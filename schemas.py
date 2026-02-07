@@ -9,6 +9,7 @@ class PlainEmpresaSchema(Schema):
     latitud = fields.Float()
     longitud = fields.Float()
     radio = fields.Float()
+    codigo_nfc_oficina = fields.String(dump_only=True)
 
 class PlainRolSchema(Schema):
     id_rol = fields.Int(dump_only=True)
@@ -29,7 +30,7 @@ class PlainHorarioSchema(Schema):
 
 class PlainFichajeSchema(Schema):
     id_fichaje = fields.Int(dump_only=True)
-    tipo = fields.String(required=True)  # Sin validación estricta para aceptar 'Vacaciones' o 'VACACIONES'
+    tipo = fields.String(required=True)
     fecha_hora = fields.DateTime(dump_only=True)
     latitud = fields.Float()
     longitud = fields.Float()
@@ -115,5 +116,5 @@ class FcmTokenSchema(Schema):
 
 class FichajeNFCInputSchema(Schema):
     nfc_data = fields.String(required=True)
-    latitud = fields.Float(load_default=True)
-    longitud = fields.Float(load_default=True)
+    latitud = fields.Float(load_default=None)
+    longitud = fields.Float(load_default=None)

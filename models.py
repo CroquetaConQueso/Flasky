@@ -12,7 +12,7 @@ class Empresa(db.Model):
     latitud = db.Column(db.Float, nullable=True)
     longitud = db.Column(db.Float, nullable=True)
     radio = db.Column(db.Integer, nullable=True, default=100)
-
+    codigo_nfc_oficina = db.Column(db.String(50), nullable=True)
     trabajadores = db.relationship("Trabajador", back_populates="empresa")
     horarios = db.relationship("Horario", backref="empresa", lazy=True)
 
