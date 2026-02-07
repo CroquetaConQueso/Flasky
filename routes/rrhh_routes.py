@@ -4,7 +4,7 @@ from forms import TrabajadorForm, HorarioForm, FichajeManualForm, IncidenciaCrea
 from utils.decorators import admin_required
 from utils.email_sender import enviar_correo_resolucion, enviar_correo_ausencia
 # IMPORTANTE: Importamos el enviador de Firebase
-from utils.firebase_sender import enviar_notificacion_push 
+from utils.firebase_sender import enviar_notificacion_push
 from extensions import db
 from datetime import datetime, timedelta, date, time
 import calendar
@@ -100,9 +100,18 @@ def empleado_new():
         form.horario_id.choices = [(h.id_horario, h.nombre_horario) for h in Horario.query.all()]
 
     if form.validate_on_submit():
-        nif = form.nif.data.strip().upper()
+        nif = (form.nif.data or "").strip().upper()
+
+        # Normalización NFC: quitar espacios y separadores habituales, luego upper
+        raw_nfc = (getattr(form, "codigo_nfc", None).data if hasattr(form, "codigo_nfc") else None)
+        codigo_nfc = (raw_nfc or "").strip().upper()
+        if codigo_nfc:
+            codigo_nfc = codigo_nfc.replace(":", "").replace("-", "").replace(" ", "")
+
         if Trabajador.query.filter_by(nif=nif).first():
             flash("El NIF introducido ya está registrado.", "danger")
+        elif codigo_nfc and Trabajador.query.filter_by(codigo_nfc=codigo_nfc).first():
+            flash("Ese código NFC ya está asignado a otro empleado.", "danger")
         else:
             nuevo = Trabajador(
                 nif=nif,
@@ -112,8 +121,10 @@ def empleado_new():
                 telef=form.telef.data,
                 idEmpresa=empresa_id,
                 idHorario=form.horario_id.data,
-                idRol=form.rol_id.data
+                idRol=form.rol_id.data,
+                codigo_nfc=codigo_nfc if codigo_nfc else None
             )
+
             if form.passw.data:
                 nuevo.set_password(form.passw.data)
 
@@ -121,7 +132,10 @@ def empleado_new():
             db.session.commit()
             flash("Empleado creado correctamente.", "success")
             return redirect(url_for("rrhh_web.empleados_list"))
+
     return render_template("empleados_form.html", form=form, is_new=True)
+
+
 
 @rrhh_bp.route("/empleados/<int:emp_id>/editar", methods=["GET", "POST"])
 @admin_required
@@ -642,7 +656,7 @@ def ejecutar_notificaciones_ausencia():
                 cuerpo = f"Hola {t.nombre}, tienes turno hoy y no has fichado."
                 exito_push = enviar_notificacion_push(t.fcm_token, titulo, cuerpo)
                 if exito_push: enviados_push += 1
-            
+
             # 2. Intentar Email (RESPALDO)
             if t.email:
                 exito_email = enviar_correo_ausencia(t.email, t.nombre)

@@ -83,10 +83,11 @@ class Trabajador(db.Model):
     nif = db.Column(db.String(20), nullable=False)
     nombre = db.Column(db.String(80), nullable=False)
     apellidos = db.Column(db.String(120), nullable=False)
-    passw = db.Column(db.String(255), nullable=False) 
+    passw = db.Column(db.String(255), nullable=False)
     email = db.Column(db.String(120), nullable=False)
     telef = db.Column(db.String(30))
 
+    codigo_nfc = db.Column(db.String(50), unique=True, nullable=True)
     # Campo para notificaciones Firebase
     fcm_token = db.Column(db.String(255), nullable=True)
 
@@ -102,7 +103,6 @@ class Trabajador(db.Model):
     incidencias = db.relationship("Incidencia", back_populates="trabajador", cascade="all, delete-orphan")
 
     def set_password(self, password):
-        # --- CORRECCIÓN IMPORTANTE AQUÍ ---
         self.passw = generate_password_hash(password)
 
     def check_password(self, password):

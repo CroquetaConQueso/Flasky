@@ -15,14 +15,13 @@ from schemas import (
     FichajeOutputSchema,
     ResumenMensualQuerySchema,
     ResumenMensualOutputSchema,
-    FichajeSchema,
     FichajeNFCInputSchema
 )
 
 blp = Blueprint("fichajes", __name__, description="Fichajes y Control de Presencia")
 
 # =========================================================
-# HELPERS
+# HELPERS (Lógica Pura)
 # =========================================================
 
 def normalizar_rol(raw: str) -> str:
@@ -53,7 +52,7 @@ def calcular_distancia(lat1, lon1, lat2, lon2):
 def _normalizar_uid(uid: str) -> str:
     if not uid:
         return ""
-    return uid.strip().upper()
+    return uid.strip().upper().replace(":", "").replace("-", "").replace(" ", "")
 
 def _uid_invertido(uid_hex: str) -> str:
     uid_hex = _normalizar_uid(uid_hex)
@@ -65,7 +64,6 @@ def _uid_invertido(uid_hex: str) -> str:
 
 def _validar_distancia_empresa(empresa: Empresa, lat: float, lon: float):
     if not empresa:
-        # Si no tiene empresa, permitimos fichar (o podrías bloquearlo)
         return
     if empresa.latitud and empresa.longitud:
         distancia = calcular_distancia(lat, lon, empresa.latitud, empresa.longitud)
@@ -115,6 +113,32 @@ def _crear_fichaje(trabajador: Trabajador, lat: float, lon: float):
     db.session.add(nuevo)
     db.session.commit()
     return nuevo
+
+# --- LÓGICA CENTRAL DE FICHAJE (NUEVA) ---
+def _procesar_fichaje_comun(user_id, lat, lon, nfc_data_raw=None):
+    """
+    Función helper que contiene toda la lógica de validación y creación,
+    pero SIN decoradores web para evitar conflictos.
+    """
+    trabajador = Trabajador.query.get_or_404(user_id)
+    empresa = trabajador.empresa
+
+    # Validación NFC si se proporciona
+    nfc_recibido = _normalizar_uid(nfc_data_raw)
+    if nfc_recibido:
+        # Recuperamos el UID de la base de datos de forma segura
+        uid_guardado = _normalizar_uid(getattr(trabajador, "codigo_nfc", None))
+        
+        # Generamos la versión invertida por si el lector lee little-endian
+        uid_inv = _uid_invertido(nfc_recibido)
+
+        # Si el usuario no tiene tarjeta asignada O no coincide ninguna versión
+        if not uid_guardado or (nfc_recibido != uid_guardado and uid_inv != uid_guardado):
+            abort(403, message="Código NFC no válido o no asignado a este usuario.")
+
+    # Validaciones comunes
+    _validar_distancia_empresa(empresa, lat, lon)
+    return _crear_fichaje(trabajador, lat, lon)
 
 # =========================================================
 # ENDPOINTS
@@ -183,23 +207,14 @@ class Fichar(MethodView):
     @blp.arguments(FichajeInputSchema)
     @blp.response(201, FichajeOutputSchema)
     def post(self, data):
+        """Fichaje manual (GPS)"""
         user_id = get_jwt_identity()
-        trabajador = Trabajador.query.get_or_404(user_id)
-        empresa = trabajador.empresa
-
-        lat = data.get("latitud")
-        lon = data.get("longitud")
-        nfc_recibido = _normalizar_uid(data.get("nfc_data"))
-
-        # Si envía NFC, validamos que coincida
-        if nfc_recibido:
-            uid_guardado = _normalizar_uid(getattr(trabajador, "codigo_nfc", None))
-            uid_inv = _uid_invertido(nfc_recibido)
-            if not uid_guardado or (nfc_recibido != uid_guardado and uid_inv != uid_guardado):
-                abort(403, message="Código NFC no coincide con el usuario.")
-
-        _validar_distancia_empresa(empresa, lat, lon)
-        return _crear_fichaje(trabajador, lat, lon)
+        return _procesar_fichaje_comun(
+            user_id,
+            data.get("latitud"),
+            data.get("longitud"),
+            data.get("nfc_data") # Opcional aquí
+        )
 
 @blp.route("/fichar-nfc")
 class FicharNFC(MethodView):
@@ -207,8 +222,15 @@ class FicharNFC(MethodView):
     @blp.arguments(FichajeNFCInputSchema)
     @blp.response(201, FichajeOutputSchema)
     def post(self, data):
-        # Alias para /fichar pero forzando validación NFC
-        return Fichar().post(data)
+        """Fichaje exclusivo NFC"""
+        user_id = get_jwt_identity()
+        # Llamamos a la lógica compartida, NO al endpoint decorado
+        return _procesar_fichaje_comun(
+            user_id,
+            data.get("latitud"),
+            data.get("longitud"),
+            data.get("nfc_data") # Obligatorio por schema, se pasa a la lógica
+        )
 
 @blp.route("/mis-fichajes")
 class MisFichajes(MethodView):
