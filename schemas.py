@@ -1,35 +1,36 @@
 from marshmallow import Schema, fields, validate
 
-# --- ESQUEMAS BÁSICOS (Spanish Fields) ---
+# --- ESQUEMAS BÁSICOS ---
 
 class PlainEmpresaSchema(Schema):
     id_empresa = fields.Int(dump_only=True)
-    nombrecomercial = fields.String(required=True, validate=validate.Length(max=100))
-    cif = fields.String(required=True, validate=validate.Length(max=20))
+    nombrecomercial = fields.String(required=True)
+    cif = fields.String(required=True)
     latitud = fields.Float()
     longitud = fields.Float()
     radio = fields.Float()
 
 class PlainRolSchema(Schema):
     id_rol = fields.Int(dump_only=True)
-    nombre_rol = fields.String(required=True, validate=validate.Length(max=50))
+    nombre_rol = fields.String(required=True)
 
 class PlainTrabajadorSchema(Schema):
     id_trabajador = fields.Int(dump_only=True)
-    nif = fields.String(required=True, validate=validate.Length(max=20))
-    nombre = fields.String(required=True, validate=validate.Length(max=50))
-    apellidos = fields.String(required=True, validate=validate.Length(max=100))
-    email = fields.String(validate=validate.Email())
-    telef = fields.String(validate=validate.Length(max=20))
+    nif = fields.String(required=True)
+    nombre = fields.String(required=True)
+    apellidos = fields.String(required=True)
+    email = fields.String()
+    telef = fields.String()
 
 class PlainHorarioSchema(Schema):
     id_horario = fields.Int(dump_only=True)
-    nombre_horario = fields.String(required=True, validate=validate.Length(max=50))
+    nombre_horario = fields.String(required=True)
     descripcion = fields.String()
 
 class PlainFichajeSchema(Schema):
     id_fichaje = fields.Int(dump_only=True)
-    tipo = fields.String(required=True, validate=validate.OneOf(["ENTRADA", "SALIDA"]))
+    # Quitamos la validación OneOf para que acepte cualquier string que envíe la app
+    tipo = fields.String(required=True) 
     fecha_hora = fields.DateTime(dump_only=True)
     latitud = fields.Float()
     longitud = fields.Float()
@@ -37,7 +38,8 @@ class PlainFichajeSchema(Schema):
 # --- LOGIN & PASSWORD ---
 
 class UserLoginSchema(Schema):
-    nif = fields.String(required=True, validate=validate.Length(min=4, max=100))
+    # Quitamos validación de longitud
+    nif = fields.String(required=True) 
     password = fields.String(required=True, load_only=True)
 
 class PasswordResetSchema(Schema):
@@ -51,8 +53,6 @@ class TrabajadorSchema(PlainTrabajadorSchema):
     idEmpresa = fields.Int(required=True, load_only=True)
     idRol = fields.Int(required=True, load_only=True)
     idHorario = fields.Int(load_only=True)
-
-    # Adding rol_nombre flat field for easier consumption by Android/Web
     rol_nombre = fields.String(attribute="rol.nombre_rol", dump_only=True)
 
     empresa = fields.Nested(PlainEmpresaSchema(), dump_only=True)
@@ -83,6 +83,8 @@ class IncidenciaSchema(Schema):
 class FichajeInputSchema(Schema):
     latitud = fields.Float(required=True)
     longitud = fields.Float(required=True)
+    # Campo opcional para que no falle si la app antigua no lo envía
+    nfc_data = fields.String(load_default=None) 
 
 class FichajeOutputSchema(Schema):
     id_fichaje = fields.Int(dump_only=True)
@@ -93,10 +95,14 @@ class FichajeOutputSchema(Schema):
 
 class ChangePasswordSchema(Schema):
     current_password = fields.String(required=True)
-    new_password = fields.String(required=True, validate=validate.Length(min=6))
+    # IMPORTANTE: Eliminado validate.Length(min=6). Ahora acepta "123".
+    new_password = fields.String(required=True) 
 
 class IncidenciaCreateSchema(Schema):
-    tipo = fields.String(required=True, validate=validate.OneOf(["VACACIONES", "BAJA", "ASUNTOS_PROPIOS", "OLVIDO", "HORAS_EXTRA"]))
+    # IMPORTANTE: Eliminado validate.OneOf. Ahora acepta "Vacaciones", "baja", etc.
+    tipo = fields.String(required=True) 
+    # Mantenemos Date. Si la app envía formato incorrecto, fallará, 
+    # pero Marshmallow requiere Date para convertirlo a objeto Python.
     fecha_inicio = fields.Date(required=True)
     fecha_fin = fields.Date(required=True)
     comentario_trabajador = fields.String()
