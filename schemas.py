@@ -115,5 +115,5 @@ class FcmTokenSchema(Schema):
 
 class FichajeNFCInputSchema(Schema):
     nfc_data = fields.String(required=True)
-    latitud = fields.Float(load_default=None)
-    longitud = fields.Float(load_default=None)
+    latitud = fields.Float(load_default=True)
+    longitud = fields.Float(load_default=True)

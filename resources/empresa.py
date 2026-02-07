@@ -1,3 +1,4 @@
+import re
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -5,9 +6,36 @@ from sqlalchemy.exc import IntegrityError
 
 from extensions import db
 from models import Empresa, Trabajador
-from schemas import EmpresaSchema, TrabajadorSchema # Correct imports
+# Añadido FichajeNFCInputSchema a los imports
+from schemas import EmpresaSchema, TrabajadorSchema, FichajeNFCInputSchema
 
 blp = Blueprint("empresas", __name__, description="Fichajes y control de presencia")
+
+# =========================================================
+# HELPERS (Necesarios para que funcionen las validaciones)
+# =========================================================
+
+def normalizar_rol(raw: str) -> str:
+    if not raw:
+        return "SIN_ROL"
+    return re.sub(r'[^A-Z]', '', raw.strip().upper())
+
+def es_admin_robusto(trabajador):
+    if not trabajador or not getattr(trabajador, "rol", None) or not getattr(trabajador.rol, "nombre_rol", None):
+        return False, "SIN_ROL"
+    rol_norm = normalizar_rol(trabajador.rol.nombre_rol)
+    claves = ["ADMIN", "RESPONSABLE", "SUPER", "RRHH", "GERENTE", "JEFE", "ENCARGADO", "DIREC"]
+    tiene_poder = any(k in rol_norm for k in claves)
+    return tiene_poder, rol_norm
+
+def _normalizar_uid(uid: str) -> str:
+    if not uid:
+        return ""
+    return uid.strip().upper().replace(":", "").replace("-", "").replace(" ", "")
+
+# =========================================================
+# ENDPOINTS
+# =========================================================
 
 # --- LISTA DE EMPRESAS (SUPERADMIN) ---
 @blp.route("/empresas")
@@ -71,12 +99,12 @@ class EmpresaConfig(MethodView):
         """Guardar configuración (Lat, Lon, Radio)"""
         user_id = get_jwt_identity()
         trabajador = Trabajador.query.get(user_id)
-        
+
         if not trabajador or not trabajador.empresa:
             abort(404, message="No tienes empresa asignada.")
-            
+
         empresa = trabajador.empresa
-        
+
         # Updating fields using Spanish names from schemas.py
         if 'latitud' in empresa_data:
             empresa.latitud = empresa_data['latitud']
@@ -84,13 +112,13 @@ class EmpresaConfig(MethodView):
             empresa.longitud = empresa_data['longitud']
         if 'radio' in empresa_data:
             empresa.radio = empresa_data['radio']
-            
+
         try:
             db.session.commit()
         except:
             db.session.rollback()
             abort(500, message="Error al guardar configuración.")
-            
+
         return empresa
 
 # --- LISTA DE EMPLEADOS (PARA LA APP) ---
@@ -102,9 +130,31 @@ class EmpleadoList(MethodView):
         """Obtener lista de empleados de mi empresa"""
         user_id = get_jwt_identity()
         trabajador = Trabajador.query.get(user_id)
-        
+
         if not trabajador or not trabajador.empresa:
              abort(404, message="Usuario sin empresa asignada.")
-             
+
         # Return all workers from the same company
         return trabajador.empresa.trabajadores
+
+# ---- PARA ESTABLECER EL NFC PRINCIPAL
+@blp.route("/config-nfc")
+class EmpresaNfcConfig(MethodView):
+    @jwt_required()
+    @blp.arguments(FichajeNFCInputSchema)
+    def post(self, data):
+        user_id = get_jwt_identity()
+        trabajador = Trabajador.query.get_or_404(user_id)
+
+        # Verificar que es admin
+        es_admin, _ = es_admin_robusto(trabajador)
+        if not es_admin:
+            abort(403, message="Solo administradores pueden configurar el NFC de oficina.")
+
+        empresa = trabajador.empresa
+        nfc_limpio = _normalizar_uid(data.get("nfc_data"))
+
+        empresa.codigo_nfc_oficina = nfc_limpio
+        db.session.commit()
+
+        return {"message": f"NFC de Oficina actualizado: {nfc_limpio}"}, 200
