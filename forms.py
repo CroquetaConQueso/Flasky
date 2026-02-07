@@ -114,12 +114,22 @@ class FichajeManualForm(FlaskForm):
     trabajador_id = SelectField("Empleado", coerce=int, validators=[DataRequired()])
     tipo = SelectField(
         "Tipo de Movimiento",
-        choices=[("ENTRADA", "Entrada"), ("SALIDA", "Salida")],
-        validators=[DataRequired()],
+        choices=[
+            ('ENTRADA', 'Entrada'),
+            ('SALIDA', 'Salida')
+        ],
+        validators=[DataRequired()]
     )
-    fecha_hora = DateTimeLocalField("Fecha y Hora", format="%Y-%m-%dT%H:%M", validators=[DataRequired()])
-    submit = SubmitField("Registrar Fichaje")
+    fecha_hora = DateTimeLocalField(
+        "Fecha y Hora",
+        format='%Y-%m-%dT%H:%M',
+        validators=[DataRequired()]
+    )
 
+    latitud = FloatField("Latitud", validators=[Optional()])
+    longitud = FloatField("Longitud", validators=[Optional()])
+
+    submit = SubmitField("Guardar Fichaje")
 
 class RequestPasswordForm(FlaskForm):
     email = StringField("Correo electrónico", validators=[DataRequired(), Email(), Length(max=120)])

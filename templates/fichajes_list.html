@@ -143,11 +143,17 @@
                                                 <small class="text-muted fw-bold mt-1" style="font-size: 0.7rem;">
                                                     {{ j.entrada.fecha_hora.strftime('%d/%m') }}
                                                 </small>
-                                                <form action="{{ url_for('rrhh_web.fichaje_delete', fichaje_id=j.entrada.id_fichaje) }}" method="POST" onsubmit="return confirm('¿Borrar esta entrada?');" class="mt-1">
-                                                    <button type="submit" class="btn btn-link p-0 text-danger" title="Eliminar entrada">
-                                                        <i class="ph-bold ph-trash fs-5"></i>
-                                                    </button>
-                                                </form>
+                                                
+                                                <div class="d-flex align-items-center gap-2 mt-1">
+                                                    <a href="{{ url_for('rrhh_web.fichaje_editar', fichaje_id=j.entrada.id_fichaje) }}" class="btn btn-link p-0 text-dark" title="Editar entrada">
+                                                        <i class="ph-bold ph-pencil-simple fs-5"></i>
+                                                    </a>
+                                                    <form action="{{ url_for('rrhh_web.fichaje_delete', fichaje_id=j.entrada.id_fichaje) }}" method="POST" onsubmit="return confirm('¿Borrar esta entrada?');">
+                                                        <button type="submit" class="btn btn-link p-0 text-danger" title="Eliminar entrada">
+                                                            <i class="ph-bold ph-trash fs-5"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
                                             </div>
                                         {% else %}
                                             <div class="time-badge bg-danger text-white border-dark">???</div>
@@ -163,11 +169,17 @@
                                                 <small class="text-muted fw-bold mt-1" style="font-size: 0.7rem;">
                                                     {{ j.salida.fecha_hora.strftime('%d/%m') }}
                                                 </small>
-                                                <form action="{{ url_for('rrhh_web.fichaje_delete', fichaje_id=j.salida.id_fichaje) }}" method="POST" onsubmit="return confirm('¿Borrar esta salida?');" class="mt-1">
-                                                    <button type="submit" class="btn btn-link p-0 text-danger" title="Eliminar salida">
-                                                        <i class="ph-bold ph-trash fs-5"></i>
-                                                    </button>
-                                                </form>
+
+                                                <div class="d-flex align-items-center gap-2 mt-1">
+                                                    <a href="{{ url_for('rrhh_web.fichaje_editar', fichaje_id=j.salida.id_fichaje) }}" class="btn btn-link p-0 text-dark" title="Editar salida">
+                                                        <i class="ph-bold ph-pencil-simple fs-5"></i>
+                                                    </a>
+                                                    <form action="{{ url_for('rrhh_web.fichaje_delete', fichaje_id=j.salida.id_fichaje) }}" method="POST" onsubmit="return confirm('¿Borrar esta salida?');">
+                                                        <button type="submit" class="btn btn-link p-0 text-danger" title="Eliminar salida">
+                                                            <i class="ph-bold ph-trash fs-5"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
                                             </div>
                                         {% elif j.status == 'active' %}
                                             <span class="badge bg-success border border-dark text-white p-2">
@@ -191,7 +203,7 @@
 
                                 <td class="text-center">
                                     {% if j.entrada %}
-                                        <a href="http://maps.google.com/maps?q={{ j.entrada.latitud }},{{ j.entrada.longitud }}" 
+                                        <a href="https://www.google.com/maps?q={{ j.entrada.latitud }},{{ j.entrada.longitud }}" 
                                            target="_blank" class="btn btn-sm btn-link text-dark border-2 border-dark"
                                            style="background-color: #ffde59; box-shadow: 2px 2px 0px #000; text-decoration: none;">
                                             <i class="ph-bold ph-map-trifold fs-5"></i>

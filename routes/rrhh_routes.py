@@ -484,10 +484,10 @@ def fichajes_list():
                            filtro_hasta=filtro_hasta,
                            resumen=resumen)
 
+
 @rrhh_bp.route("/fichajes/nuevo", methods=["GET", "POST"])
 @admin_required
 def fichaje_nuevo():
-    # Permite registrar un fichaje manual tomando la ubicación desde la empresa.
     empresa_id = session.get("empresa_id")
     empresa = Empresa.query.get(empresa_id)
     form = FichajeManualForm()
@@ -495,25 +495,59 @@ def fichaje_nuevo():
     empleados = Trabajador.query.filter_by(idEmpresa=empresa_id).order_by(Trabajador.nombre).all()
     form.trabajador_id.choices = [(t.id_trabajador, f"{t.nombre} {t.apellidos}") for t in empleados]
 
+    if request.method == 'GET':
+        form.latitud.data = empresa.latitud
+        form.longitud.data = empresa.longitud
+
     if form.validate_on_submit():
-        # Evita “fichajes del futuro” para no romper el histórico.
-        if form.fecha_hora.data > datetime.now():
-            flash("No puedes registrar fichajes con fecha futura.", "danger")
-            return render_template("fichaje_manual.html", form=form)
+        # Usamos los datos del form (si el admin los ha cambiado) o fallbacks
+        lat = form.latitud.data if form.latitud.data is not None else (empresa.latitud or 0.0)
+        lon = form.longitud.data if form.longitud.data is not None else (empresa.longitud or 0.0)
 
         nuevo_fichaje = Fichaje(
             id_trabajador=form.trabajador_id.data,
             tipo=form.tipo.data,
             fecha_hora=form.fecha_hora.data,
-            latitud=empresa.latitud or 0.0,
-            longitud=empresa.longitud or 0.0
+            latitud=lat,
+            longitud=lon
         )
         db.session.add(nuevo_fichaje)
         db.session.commit()
-        flash("Fichaje manual registrado correctamente.", "success")
+        flash("Fichaje manual creado con éxito.", "success")
         return redirect(url_for("rrhh_web.fichajes_list"))
 
-    return render_template("fichaje_manual.html", form=form)
+    if form.errors:
+         for field, errors in form.errors.items():
+            for error in errors:
+                flash(f"Error en {field}: {error}", "warning")
+
+    return render_template("fichaje_manual.html", form=form, titulo="Nuevo Fichaje")
+
+
+@rrhh_bp.route("/fichajes/<int:fichaje_id>/editar", methods=["GET", "POST"])
+@admin_required
+def fichaje_editar(fichaje_id):
+    fichaje = Fichaje.query.get_or_404(fichaje_id)
+
+
+    if fichaje.trabajador.idEmpresa != session.get("empresa_id"):
+        flash("No tienes permiso para editar este fichaje.", "danger")
+        return redirect(url_for("rrhh_web.fichajes_list"))
+
+    form = FichajeManualForm(obj=fichaje)
+
+    # Cargar selector de empleados
+    empresa_id = session.get("empresa_id")
+    empleados = Trabajador.query.filter_by(idEmpresa=empresa_id).order_by(Trabajador.nombre).all()
+    form.trabajador_id.choices = [(t.id_trabajador, f"{t.nombre} {t.apellidos}") for t in empleados]
+
+    if form.validate_on_submit():
+        form.populate_obj(fichaje)
+        db.session.commit()
+        flash("Fichaje actualizado correctamente.", "success")
+        return redirect(url_for("rrhh_web.fichajes_list"))
+
+    return render_template("fichaje_manual.html", form=form, titulo="Editar Fichaje")
 
 @rrhh_bp.get("/incidencias")
 @admin_required
