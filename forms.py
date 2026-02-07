@@ -59,9 +59,11 @@ class TrabajadorForm(FlaskForm):
     nombre = StringField("Nombre", validators=[DataRequired(), Length(max=80)])
     apellidos = StringField("Apellidos", validators=[DataRequired(), Length(max=120)])
     passw = PasswordField("Contraseña", validators=[Optional(), Length(max=255)])
+
+    # Usa el validador Email (real o parcheado)
     email = StringField("Email", validators=[DataRequired(), Email(), Length(max=120)])
+
     telef = TelField("Teléfono")
-    codigo_nfc = StringField("Código NFC (UID)", validators=[Optional(), Length(max=50)])
     rol_id = SelectField("Rol", coerce=int, validators=[DataRequired()])
     horario_id = SelectField("Horario", coerce=int, validators=[DataRequired()])
     submit = SubmitField("Guardar")

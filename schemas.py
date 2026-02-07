@@ -1,4 +1,4 @@
-from marshmallow import Schema, fields, validate
+from marshmallow import Schema, fields
 
 # --- ESQUEMAS BÁSICOS ---
 
@@ -29,8 +29,7 @@ class PlainHorarioSchema(Schema):
 
 class PlainFichajeSchema(Schema):
     id_fichaje = fields.Int(dump_only=True)
-    # Quitamos la validación OneOf para que acepte cualquier string que envíe la app
-    tipo = fields.String(required=True) 
+    tipo = fields.String(required=True)  # Sin validación estricta para aceptar 'Vacaciones' o 'VACACIONES'
     fecha_hora = fields.DateTime(dump_only=True)
     latitud = fields.Float()
     longitud = fields.Float()
@@ -38,8 +37,7 @@ class PlainFichajeSchema(Schema):
 # --- LOGIN & PASSWORD ---
 
 class UserLoginSchema(Schema):
-    # Quitamos validación de longitud
-    nif = fields.String(required=True) 
+    nif = fields.String(required=True)
     password = fields.String(required=True, load_only=True)
 
 class PasswordResetSchema(Schema):
@@ -78,13 +76,12 @@ class IncidenciaSchema(Schema):
     comentario_admin = fields.String(dump_only=True)
     trabajador = fields.Nested(PlainTrabajadorSchema(), dump_only=True)
 
-# --- EXTRAS ---
+# --- EXTRAS PARA APP ---
 
 class FichajeInputSchema(Schema):
     latitud = fields.Float(required=True)
     longitud = fields.Float(required=True)
-    # Campo opcional para que no falle si la app antigua no lo envía
-    nfc_data = fields.String(load_default=None) 
+    nfc_data = fields.String(load_default=None)
 
 class FichajeOutputSchema(Schema):
     id_fichaje = fields.Int(dump_only=True)
@@ -95,14 +92,10 @@ class FichajeOutputSchema(Schema):
 
 class ChangePasswordSchema(Schema):
     current_password = fields.String(required=True)
-    # IMPORTANTE: Eliminado validate.Length(min=6). Ahora acepta "123".
-    new_password = fields.String(required=True) 
+    new_password = fields.String(required=True) # Sin validación de longitud mínima
 
 class IncidenciaCreateSchema(Schema):
-    # IMPORTANTE: Eliminado validate.OneOf. Ahora acepta "Vacaciones", "baja", etc.
-    tipo = fields.String(required=True) 
-    # Mantenemos Date. Si la app envía formato incorrecto, fallará, 
-    # pero Marshmallow requiere Date para convertirlo a objeto Python.
+    tipo = fields.String(required=True)
     fecha_inicio = fields.Date(required=True)
     fecha_fin = fields.Date(required=True)
     comentario_trabajador = fields.String()
