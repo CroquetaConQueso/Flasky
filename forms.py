@@ -45,7 +45,12 @@ class EmpresaForm(FlaskForm):
     longitud = FloatField("Longitud", validators=[DataRequired()])
     radio = IntegerField("Radio (metros)", validators=[DataRequired()])
     submit = SubmitField("Guardar")
-
+    codigo_nfc_oficina = StringField(
+        'Código NFC de Oficina (Torno)',
+        validators=[Optional(), Length(max=50)],
+        render_kw={"placeholder": "Ej: 04A1B2C3"}
+    )
+    submit = SubmitField("Guardar")
 
 class RolForm(FlaskForm):
     nombre_rol = StringField("Nombre del rol", validators=[DataRequired(), Length(max=80)])
@@ -125,7 +130,7 @@ class FichajeManualForm(FlaskForm):
         format='%Y-%m-%dT%H:%M',
         validators=[DataRequired()]
     )
-
+    # --- NUEVOS CAMPOS (Opcionales) ---
     latitud = FloatField("Latitud", validators=[Optional()])
     longitud = FloatField("Longitud", validators=[Optional()])
 
