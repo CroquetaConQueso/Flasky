@@ -104,12 +104,21 @@ def empleado_new():
         if Trabajador.query.filter_by(nif=nif).first():
             flash("El NIF introducido ya está registrado.", "danger")
         else:
+            # Capturar y limpiar el código NFC si existe
+            nfc_code = form.codigo_nfc.data.strip().upper() if form.codigo_nfc.data else None
+            
+            # Verificar si el NFC ya está en uso por otro empleado
+            if nfc_code and Trabajador.query.filter_by(codigo_nfc=nfc_code).first():
+                flash("El código NFC introducido ya está asignado a otro empleado.", "danger")
+                return render_template("empleados_form.html", form=form, is_new=True)
+
             nuevo = Trabajador(
                 nif=nif,
                 nombre=form.nombre.data,
                 apellidos=form.apellidos.data,
                 email=form.email.data,
                 telef=form.telef.data,
+                codigo_nfc=nfc_code,  # <-- AÑADIDO
                 idEmpresa=empresa_id,
                 idHorario=form.horario_id.data,
                 idRol=form.rol_id.data
@@ -145,6 +154,15 @@ def empleado_edit(emp_id):
         form.horario_id.data = empleado.idHorario
 
     if form.validate_on_submit():
+        # Verificación extra de unicidad NFC al editar
+        if form.codigo_nfc.data:
+            nuevo_nfc = form.codigo_nfc.data.strip().upper()
+            existente = Trabajador.query.filter_by(codigo_nfc=nuevo_nfc).first()
+            if existente and existente.id_trabajador != emp_id:
+                flash("El código NFC ya pertenece a otro empleado.", "danger")
+                return render_template("empleados_form.html", form=form, titulo="Editar Empleado", is_new=False)
+            form.codigo_nfc.data = nuevo_nfc
+
         form.populate_obj(empleado)
         if form.passw.data:
             empleado.set_password(form.passw.data)

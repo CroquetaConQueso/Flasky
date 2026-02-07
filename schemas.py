@@ -113,3 +113,8 @@ class ResumenMensualOutputSchema(Schema):
 
 class FcmTokenSchema(Schema):
     token = fields.String(required=True)
+
+class FichajeNFCInputSchema(Schema):
+    nfc_data = fields.String(required=True)
+    latitud = fields.Float(load_default=None)
+    longitud = fields.Float(load_default=None)

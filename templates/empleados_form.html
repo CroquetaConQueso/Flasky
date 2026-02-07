@@ -102,6 +102,20 @@
             </div>
 
             <div class="mb-4">
+                <label class="form-label">{{ form.codigo_nfc.label }}</label>
+                <div class="input-group" style="border: 3px solid black;">
+                    <span class="input-group-text"><i class="ph-bold ph-tag"></i></span>
+                    {{ form.codigo_nfc(class="form-control border-0", placeholder="Ej: 04E26822 (Opcional)") }}
+                </div>
+                <div class="form-text mt-1">
+                    <i class="ph-fill ph-info"></i> Escanea la tarjeta con la App Móvil para ver su código y cópialo aquí.
+                </div>
+                {% for error in form.codigo_nfc.errors %}
+                    <div class="text-danger fw-bold mt-1 border border-dark p-1 bg-white d-inline-block">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="mb-4">
                 <label class="form-label">
                     {% if is_new %}Contraseña Inicial{% else %}Nueva Contraseña (Opcional){% endif %}
                 </label>

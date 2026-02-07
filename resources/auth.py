@@ -10,11 +10,13 @@ from sqlalchemy import or_, func
 
 from extensions import db
 from models import Trabajador, Fichaje, Dia, Franja
-from schemas import UserLoginSchema, PasswordResetSchema, ChangePasswordSchema, FcmTokenSchema
+from schemas import (
+    UserLoginSchema,
+    PasswordResetSchema,
+    ChangePasswordSchema,
+    FcmTokenSchema
+)
 from utils.email_sender import enviar_correo_password
-
-# OJO: si quieres seguir enviando push desde login, descomenta:
-# from utils.firebase_sender import enviar_notificacion_push
 
 blp = Blueprint("auth", __name__, description="Autenticacion y Tokens")
 
@@ -28,12 +30,13 @@ DIAS_SEMANA = {
     6: "domingo"
 }
 
-# Margen para no avisar si aún es “temprano” respecto a la hora de entrada
 GRACE_MINUTES = 10
 
 
+# =========================================================
+# HELPERS RECORDATORIO (LOGIN)
+# =========================================================
 def _get_franjas_hoy(trabajador: Trabajador, hoy_fecha):
-    """Devuelve lista de franjas de hoy para el horario del trabajador."""
     if not trabajador.idHorario:
         return []
 
@@ -45,11 +48,13 @@ def _get_franjas_hoy(trabajador: Trabajador, hoy_fecha):
     if not dia_db:
         return []
 
-    return Franja.query.filter_by(id_horario=trabajador.idHorario, id_dia=dia_db.id).all()
+    return Franja.query.filter_by(
+        id_horario=trabajador.idHorario,
+        id_dia=dia_db.id
+    ).all()
 
 
 def _tiene_entrada_hoy(trabajador: Trabajador, hoy_fecha):
-    """True si existe ENTRADA hoy (rango 00:00:00 - 23:59:59.999999)."""
     inicio_dia = datetime.combine(hoy_fecha, dtime.min)
     fin_dia = datetime.combine(hoy_fecha, dtime.max)
 
@@ -64,10 +69,6 @@ def _tiene_entrada_hoy(trabajador: Trabajador, hoy_fecha):
 
 
 def _debe_avisar_fichaje(trabajador: Trabajador):
-    """
-    Devuelve (debe_avisar, titulo, mensaje, trabaja_hoy, hora_entrada_str)
-    Avisamos si hoy trabaja, ya pasó la hora de entrada (+ margen), y no hay ENTRADA hoy.
-    """
     ahora = datetime.now()
     hoy_fecha = ahora.date()
 
@@ -75,20 +76,16 @@ def _debe_avisar_fichaje(trabajador: Trabajador):
     if not franjas:
         return (False, None, None, False, None)
 
-    # Si hay varias franjas, usamos la hora_entrada más temprana
     hora_entrada_min = min((f.hora_entrada for f in franjas if f.hora_entrada), default=None)
     hora_entrada_str = hora_entrada_min.strftime("%H:%M") if hora_entrada_min else None
 
-    # Si no tenemos hora_entrada, no avisamos (evita falsos positivos)
     if not hora_entrada_min:
         return (False, None, None, True, None)
 
     limite_aviso = datetime.combine(hoy_fecha, hora_entrada_min) + timedelta(minutes=GRACE_MINUTES)
     if ahora < limite_aviso:
-        # Aún no toca avisar
         return (False, None, None, True, hora_entrada_str)
 
-    # Ya es hora de haber fichado -> comprobamos si tiene ENTRADA hoy
     if _tiene_entrada_hoy(trabajador, hoy_fecha):
         return (False, None, None, True, hora_entrada_str)
 
@@ -100,6 +97,9 @@ def _debe_avisar_fichaje(trabajador: Trabajador):
     return (True, titulo, mensaje, True, hora_entrada_str)
 
 
+# =========================================================
+# ENDPOINTS AUTH
+# =========================================================
 @blp.route("/login")
 class Login(MethodView):
     @blp.arguments(UserLoginSchema)
@@ -129,46 +129,16 @@ class Login(MethodView):
 
         print(f"[LOGIN] Éxito: {trabajador.nombre} ha entrado.", file=sys.stderr)
 
-        # --- AVISO: hoy trabaja + NO hay ENTRADA hoy ---
         recordatorio = {"avisar": False}
-
         try:
-            ahora = datetime.now()
-            hoy = ahora.date()
-            nombre_dia = DIAS_SEMANA.get(hoy.weekday())
-
-            if trabajador.idHorario and nombre_dia:
-                dia_db = Dia.query.filter_by(nombre=nombre_dia).first()
-                if dia_db:
-                    # trabaja hoy si hay franjas para su horario y ese día
-                    franjas_hoy = Franja.query.filter_by(
-                        id_horario=trabajador.idHorario,
-                        id_dia=dia_db.id
-                    ).all()
-
-                    if franjas_hoy:
-                        inicio_dia = datetime.combine(hoy, dtime.min)
-                        fin_dia = datetime.combine(hoy, dtime.max)
-
-                        fichaje_hoy = Fichaje.query.filter(
-                            Fichaje.id_trabajador == trabajador.id_trabajador,
-                            func.upper(func.trim(Fichaje.tipo)) == "ENTRADA",
-                            Fichaje.fecha_hora >= inicio_dia,
-                            Fichaje.fecha_hora <= fin_dia
-                        ).first()
-
-                        if not fichaje_hoy:
-                            recordatorio = {
-                                "avisar": True,
-                                "titulo": "⚠️ ¡No has fichado!",
-                                "mensaje": f"Hola {trabajador.nombre}, hoy trabajas y no consta tu ENTRADA. Regístrala cuanto antes."
-                            }
-                            print(f"[LOGIN] ALERTA: {trabajador.nombre} NO tiene ENTRADA hoy.", file=sys.stderr)
-
+            debe, titulo, msg, _, _ = _debe_avisar_fichaje(trabajador)
+            if debe:
+                recordatorio = {"avisar": True, "titulo": titulo, "mensaje": msg}
         except Exception as e:
             print(f"[LOGIN] Error calculando recordatorio (no crítico): {e}", file=sys.stderr)
 
-        access_token = create_access_token(identity=str(trabajador.id_trabajador))
+        # ✅ Identity como INT (evita bugs raros en get_jwt_identity/query.get)
+        access_token = create_access_token(identity=trabajador.id_trabajador)
 
         return {
             "access_token": access_token,
@@ -177,6 +147,37 @@ class Login(MethodView):
             "rol": trabajador.rol.nombre_rol if trabajador.rol else "Empleado",
             "id_empresa": trabajador.idEmpresa,
             "recordatorio": recordatorio
+        }
+
+
+@blp.route("/me")
+class Me(MethodView):
+    @jwt_required()
+    def get(self):
+        user_id = get_jwt_identity()
+        trabajador = Trabajador.query.get_or_404(user_id)
+
+        return {
+            "id_trabajador": trabajador.id_trabajador,
+            "nif": trabajador.nif,
+            "nombre": trabajador.nombre,
+            "apellidos": getattr(trabajador, "apellidos", None),
+            "email": trabajador.email,
+            "telef": getattr(trabajador, "telef", None),
+            "rol": trabajador.rol.nombre_rol if trabajador.rol else "Empleado",
+            "id_empresa": trabajador.idEmpresa,
+            "id_horario": getattr(trabajador, "idHorario", None),
+            "codigo_nfc": getattr(trabajador, "codigo_nfc", None),
+        }
+
+
+@blp.route("/server-time")
+class ServerTime(MethodView):
+    def get(self):
+        now = datetime.now()
+        return {
+            "iso": now.isoformat(),
+            "timestamp": int(now.timestamp())
         }
 
 
@@ -205,7 +206,7 @@ class PasswordReset(MethodView):
             return {"message": "Este usuario no tiene email configurado"}, 400
 
         caracteres = string.ascii_letters + string.digits
-        nueva_pass = ''.join(random.choice(caracteres) for i in range(8))
+        nueva_pass = ''.join(random.choice(caracteres) for _ in range(8))
 
         trabajador.set_password(nueva_pass)
         db.session.commit()
