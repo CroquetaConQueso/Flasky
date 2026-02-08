@@ -109,12 +109,10 @@ def _normalizar_uid(uid: str) -> str:
     """
     if not uid:
         return ""
-    s = uid.strip().upper()
-    if s.startswith("0X"):
-        s = s[2:]
-    # Quita cualquier cosa que no sea HEX (esto elimina :, -, espacios, etc.)
-    s = re.sub(r"[^0-9A-F]", "", s)
-    return s
+    cleaned = re.sub(r"[^0-9A-F]", "", uid.strip().upper())
+    if len(cleaned) % 2 == 1:
+        cleaned = "0" + cleaned
+    return cleaned
 
 
 def _uid_es_valido(uid_hex: str) -> bool:
@@ -126,22 +124,21 @@ def _uid_es_valido(uid_hex: str) -> bool:
 
 def _uid_invertido(uid_hex: str) -> str:
     """
-    Invierte el UID por pares de bytes:
-    AABBCCDD -> DDCCBBAA
-
-    Nota: algunos lectores entregan el UID en orden inverso (endianness).
-    Para cubrir casos raros de longitud impar, hacemos padding defensivo.
+    Invierte el UID por bytes (endianness), por si el lector devuelve orden inverso.
+    Ej: A1B2C3D4 -> D4C3B2A1
     """
     uid_hex = _normalizar_uid(uid_hex)
-    if not uid_hex:
-        return ""
+    if len(uid_hex) < 2:
+        return uid_hex
 
+    # Asegura longitud par (por seguridad, aunque _normalizar_uid ya lo hace)
     if len(uid_hex) % 2 == 1:
-        uid_hex = "0" + uid_hex  # padding defensivo
+        uid_hex = "0" + uid_hex
 
     pares = [uid_hex[i:i + 2] for i in range(0, len(uid_hex), 2)]
     pares.reverse()
     return "".join(pares)
+
 
 
 def _uids_equivalentes(uid_recibido_raw: str, uid_guardado_raw: str) -> bool:
@@ -299,63 +296,67 @@ def _crear_fichaje(trabajador: Trabajador, lat: float, lon: float):
     return nuevo
 
 
-def _procesar_fichaje_comun(user_id, lat, lon, nfc_data_raw=None, permitir_sin_nfc: bool = False):
+def _procesar_fichaje_comun(user_id, lat, lon, nfc_data_raw=None):
     """
-    Punto único de validación previo a crear fichaje.
+    Punto único de entrada para fichar (manual o NFC).
 
-    Reglas NFC:
-    1) Si la empresa tiene 'codigo_nfc_oficina':
-       - Es OBLIGATORIO escanearlo (en móvil)
-       - Sirve para TODOS los trabajadores (es un "punto de entrada")
-       - Se compara de forma robusta (normal/invertido, separadores, 0x, ceros...)
-    2) Si la empresa NO tiene 'codigo_nfc_oficina':
-       - Si llega nfc_data, se valida contra el 'codigo_nfc' personal del trabajador.
-       - Si no llega nfc_data, se permite fichaje normal (como antes).
-
-    permitir_sin_nfc:
-    - Pensado para un futuro flujo "web/admin" separado (si lo implementas),
-      donde se permita fichar sin NFC aunque exista NFC de oficina.
-    - En los endpoints actuales se queda en False (móvil estricto).
+    Responsabilidades:
+    1) Cargar trabajador + empresa.
+    2) Validar NFC según política:
+       - Si la empresa tiene NFC de oficina -> OBLIGATORIO y debe coincidir.
+       - Si la empresa NO tiene NFC de oficina -> si llega NFC, se valida contra el NFC del trabajador (si existe).
+    3) Validar distancia GPS respecto a la empresa.
+    4) (Extra) Anti-doble lectura NFC: evita 2 requests seguidas al acercar la tarjeta.
+    5) Crear el fichaje (ENTRADA/SALIDA) aplicando las reglas de _crear_fichaje().
     """
     trabajador = Trabajador.query.get_or_404(user_id)
     empresa = trabajador.empresa
 
-    # NFC de oficina (si existe) => todos fichan con ESTE UID
-    nfc_oficina_raw = getattr(empresa, "codigo_nfc_oficina", None)
-    nfc_oficina = _normalizar_uid(nfc_oficina_raw)
+    # --- 1) Validación NFC (modo "NFC de oficina" vs "NFC personal") ---
 
-    if nfc_oficina:
-        if not permitir_sin_nfc:
-            nfc_recibido = _normalizar_uid(nfc_data_raw)
+    # NFC de oficina guardado por el admin (si existe, será obligatorio para fichar desde app móvil)
+    nfc_oficina_requerido = _normalizar_uid(getattr(empresa, "codigo_nfc_oficina", None))
 
-            if not nfc_recibido:
-                abort(400, message="Fichaje restringido: Debes escanear el punto NFC de la entrada.")
+    if nfc_oficina_requerido:
+        # En modo "oficina": el cliente DEBE enviar un NFC y debe coincidir con el oficial.
+        nfc_recibido = _normalizar_uid(nfc_data_raw)
+        if not nfc_recibido:
+            abort(400, message="Fichaje restringido: Debes escanear el punto NFC de la entrada.")
 
-            if not _uid_es_valido(nfc_recibido):
-                abort(400, message="NFC inválido (formato).")
+        # Algunos lectores devuelven el UID por bytes invertidos, por eso aceptamos ambas variantes.
+        uid_inv = _uid_invertido(nfc_recibido)
 
-            if not _uids_equivalentes(nfc_data_raw, nfc_oficina_raw):
-                abort(403, message="NFC incorrecto. Escanea la etiqueta oficial de la entrada.")
-
+        if nfc_recibido != nfc_oficina_requerido and uid_inv != nfc_oficina_requerido:
+            abort(403, message="NFC Incorrecto. Escanea la etiqueta oficial de la entrada.")
     else:
-        # Sin NFC de oficina => modo NFC personal (solo si viene nfc_data)
+        # En modo "personal": el NFC es opcional. Si llega, se valida contra el del trabajador.
         nfc_recibido = _normalizar_uid(nfc_data_raw)
         if nfc_recibido:
-            if not _uid_es_valido(nfc_recibido):
-                abort(400, message="NFC inválido (formato).")
+            uid_guardado = _normalizar_uid(getattr(trabajador, "codigo_nfc", None))
+            uid_inv = _uid_invertido(nfc_recibido)
 
-            uid_guardado_raw = getattr(trabajador, "codigo_nfc", None)
-            uid_guardado = _normalizar_uid(uid_guardado_raw)
-
-            if not uid_guardado:
-                abort(403, message="Este usuario no tiene NFC asignado.")
-            if not _uids_equivalentes(nfc_data_raw, uid_guardado_raw):
+            # Si el trabajador no tiene NFC asignado, o no coincide (normal o invertido) => prohibido
+            if not uid_guardado or (nfc_recibido != uid_guardado and uid_inv != uid_guardado):
                 abort(403, message="Código NFC no válido o no asignado a este usuario.")
 
-    # GPS (radio empresa)
+    # --- 2) Validación GPS (radio empresa) ---
     _validar_distancia_empresa(empresa, lat, lon)
 
-    # Crear fichaje (ENTRADA/SALIDA)
+    # --- 3) Extra: Anti-doble lectura NFC (evita 429 por acercar tarjeta y disparar 2 requests) ---
+    # Solo aplica si la llamada viene con NFC (manual no se toca).
+    if nfc_data_raw:
+        ultimo = (
+            Fichaje.query.filter_by(id_trabajador=trabajador.id_trabajador)
+            .order_by(Fichaje.fecha_hora.desc())
+            .first()
+        )
+        if ultimo:
+            segundos = (datetime.now() - ultimo.fecha_hora).total_seconds()
+            # Ventana pequeña: suficiente para rebotes NFC, sin molestar al usuario
+            if segundos < 8:
+                abort(429, message="Lectura repetida NFC. Espera un momento y vuelve a acercar la tarjeta.")
+
+    # --- 4) Crear fichaje (ENTRADA/SALIDA) ---
     return _crear_fichaje(trabajador, lat, lon)
 
 
