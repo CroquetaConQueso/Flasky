@@ -11,6 +11,7 @@ from wtforms import (
 )
 from wtforms.validators import DataRequired, Length, Optional, EqualTo
 
+# --- Bloques de compatibilidad para versiones antiguas de WTForms ---
 try:
     from wtforms.fields import TimeField, DateTimeLocalField, TelField
 except ImportError:
@@ -24,13 +25,13 @@ except ImportError:
 try:
     from wtforms.validators import Email
 except ImportError:
+    # Fallback por si la librería es muy antigua (aunque no validará el email)
     def Email(message=None):
         def _email(form, field):
             return None
         return _email
+# ------------------------------------------------------------------
 
-
-# Forms web (login, CRUD, incidencias, fichajes)
 class LoginForm(FlaskForm):
     nif = StringField("Identificación", validators=[DataRequired(), Length(max=100)])
     password = PasswordField("Contraseña", validators=[DataRequired()])
@@ -44,13 +45,15 @@ class EmpresaForm(FlaskForm):
     latitud = FloatField("Latitud", validators=[DataRequired()])
     longitud = FloatField("Longitud", validators=[DataRequired()])
     radio = IntegerField("Radio (metros)", validators=[DataRequired()])
-    submit = SubmitField("Guardar")
+    
     codigo_nfc_oficina = StringField(
-        'Código NFC de Oficina (Torno)',
+        "Código NFC de Oficina (Torno)",
         validators=[Optional(), Length(max=50)],
         render_kw={"placeholder": "Ej: 04A1B2C3"}
     )
+    # He quitado el 'submit' duplicado que tenías arriba
     submit = SubmitField("Guardar")
+
 
 class RolForm(FlaskForm):
     nombre_rol = StringField("Nombre del rol", validators=[DataRequired(), Length(max=80)])
@@ -120,28 +123,41 @@ class FichajeManualForm(FlaskForm):
     tipo = SelectField(
         "Tipo de Movimiento",
         choices=[
-            ('ENTRADA', 'Entrada'),
-            ('SALIDA', 'Salida')
+            ("ENTRADA", "Entrada"),
+            ("SALIDA", "Salida"),
         ],
-        validators=[DataRequired()]
+        validators=[DataRequired()],
     )
     fecha_hora = DateTimeLocalField(
         "Fecha y Hora",
-        format='%Y-%m-%dT%H:%M',
-        validators=[DataRequired()]
+        format="%Y-%m-%dT%H:%M",
+        validators=[DataRequired()],
     )
-    # --- NUEVOS CAMPOS (Opcionales) ---
     latitud = FloatField("Latitud", validators=[Optional()])
     longitud = FloatField("Longitud", validators=[Optional()])
-
     submit = SubmitField("Guardar Fichaje")
 
+
+# --- FORMULARIOS DE RECUPERACIÓN DE CONTRASEÑA ---
+
 class RequestPasswordForm(FlaskForm):
+    """Pide el email para enviar el enlace"""
     email = StringField("Correo electrónico", validators=[DataRequired(), Email(), Length(max=120)])
-    submit = SubmitField("Enviar nueva contraseña")
+    submit = SubmitField("Enviar enlace")
+
+
+class ResetPasswordTokenForm(FlaskForm):
+    """Pide la nueva contraseña tras validar el token"""
+    new_password = PasswordField("Nueva Contraseña", validators=[DataRequired(), Length(min=6)])
+    confirm_password = PasswordField(
+        "Repetir Nueva",
+        validators=[DataRequired(), EqualTo("new_password", message="Las contraseñas no coinciden")],
+    )
+    submit = SubmitField("Restablecer contraseña")
 
 
 class ChangePasswordForm(FlaskForm):
+    """Cambio de contraseña estando logueado (pide la actual)"""
     current_password = PasswordField("Contraseña Actual", validators=[DataRequired()])
     new_password = PasswordField("Nueva Contraseña", validators=[DataRequired(), Length(min=6)])
     confirm_password = PasswordField(

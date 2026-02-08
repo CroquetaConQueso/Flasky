@@ -1,0 +1,154 @@
+/* --- static/css/reset_confirm.css --- */
+
+/* 1. FONDO: Azul Cian con trama de puntos */
+body {
+    background-color: #00f2fe;
+    background-image: radial-gradient(#000 15%, transparent 16%);
+    background-size: 20px 20px;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Verdana', sans-serif;
+    padding: 20px;
+}
+
+/* 2. TARJETA: Amarillo Eléctrico */
+.confirm-card {
+    background: #ffde59; 
+    border: 4px solid #000000;
+    border-radius: 0px;
+    box-shadow: 12px 12px 0px #000000;
+    padding: 3rem;
+    width: 100%;
+    max-width: 500px;
+    position: relative;
+    transition: transform 0.2s;
+}
+
+.confirm-card:hover {
+    transform: translate(-3px, -3px);
+    box-shadow: 15px 15px 0px #000000;
+}
+
+/* 3. CABECERA Y BADGE */
+.confirm-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.confirm-badge {
+    background-color: #fb5607; /* Naranja fuerte */
+    color: #fff;
+    border: 3px solid #000;
+    display: inline-block;
+    padding: 12px 25px;
+    font-weight: 900;
+    text-transform: uppercase;
+    font-size: 1.2rem;
+    transform: rotate(-2deg);
+    box-shadow: 5px 5px 0px #000;
+    letter-spacing: 1px;
+}
+
+/* 4. TEXTO INSTRUCCIONES: Rosa Neón */
+.confirm-text {
+    text-align: center;
+    font-weight: 700;
+    margin-bottom: 2rem;
+    color: #fff;
+    text-transform: uppercase;
+    font-size: 0.95rem;
+    background: #ff4d6d;
+    border: 3px solid #000;
+    padding: 15px;
+    box-shadow: 5px 5px 0px #000;
+    transform: rotate(1deg);
+}
+
+/* 5. ETIQUETAS (LABELS): Verde Neón (Ya no son blancas) */
+.form-label {
+    font-weight: 900;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+    display: inline-block;
+    color: #000;
+    background: #00ff9d; /* ¡COLOR AÑADIDO! */
+    padding: 6px 10px;
+    border: 3px solid #000;
+    box-shadow: 3px 3px 0px #000;
+    transform: rotate(-1deg); /* Un toque "desordenado" */
+}
+
+/* 6. INPUTS: BLANCOS (Lo único blanco) */
+.form-control {
+    border: 3px solid #000 !important;
+    border-radius: 0 !important;
+    padding: 15px;
+    font-weight: 700;
+    font-size: 1.1rem;
+    background-color: #ffffff !important; /* BLANCO PURO */
+    color: #000;
+    transition: all 0.2s;
+}
+
+.form-control:focus {
+    background-color: #ffffff !important;
+    box-shadow: 6px 6px 0px #000;
+    transform: translate(-3px, -3px);
+    outline: none;
+    border-color: #000;
+}
+
+/* 7. BOTÓN: Morado Eléctrico */
+.btn-confirm {
+    background-color: #8338ec;
+    color: #fff;
+    border: 3px solid #000;
+    border-radius: 0;
+    padding: 15px;
+    width: 100%;
+    font-weight: 900;
+    text-transform: uppercase;
+    font-size: 1.2rem;
+    letter-spacing: 1px;
+    box-shadow: 6px 6px 0px #000;
+    transition: all 0.1s;
+    cursor: pointer;
+    margin-top: 1.5rem;
+}
+
+.btn-confirm:hover {
+    background-color: #000;
+    color: #fff;
+    box-shadow: 8px 8px 0px #fff;
+    transform: translate(-2px, -2px);
+    border-color: #fff;
+}
+
+.btn-confirm:active {
+    transform: translate(4px, 4px);
+    box-shadow: 0px 0px 0px #000;
+}
+
+/* Errores */
+.text-danger {
+    font-weight: 800;
+    font-size: 0.85rem;
+    background: #000;
+    color: #ff4d6d !important;
+    display: block;
+    padding: 8px;
+    border: 2px solid #fff;
+    box-shadow: 4px 4px 0px rgba(0,0,0,0.5);
+    margin-top: 8px;
+}
+
+/* Responsive */
+@media (max-width: 576px) {
+    .confirm-card {
+        padding: 1.5rem;
+        box-shadow: 6px 6px 0px #000;
+    }
+}
