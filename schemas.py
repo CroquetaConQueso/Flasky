@@ -118,3 +118,6 @@ class FichajeNFCInputSchema(Schema):
     nfc_data = fields.String(required=True)
     latitud = fields.Float(load_default=None)
     longitud = fields.Float(load_default=None)
+
+class ResetPasswordRequestSchema(Schema):
+    email = fields.Str(required=True)

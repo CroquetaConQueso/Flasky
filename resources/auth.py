@@ -10,7 +10,7 @@ from sqlalchemy import or_, func
 
 from extensions import db
 from models import Trabajador, Fichaje, Dia, Franja
-from schemas import UserLoginSchema, PasswordResetSchema, ChangePasswordSchema, FcmTokenSchema
+from schemas import UserLoginSchema, PasswordResetSchema, ChangePasswordSchema, FcmTokenSchema, ResetPasswordRequestSchema
 from utils.email_sender import enviar_correo_password
 
 
@@ -264,3 +264,40 @@ class SaveFcmToken(MethodView):
             return {"message": "Token guardado correctamente"}, 200
 
         abort(404, message="Usuario no encontrado")
+
+# ENDPOINT REST PASSWORD
+@blp.route("/reset-password")
+class ResetPassword(MethodView):
+    @blp.arguments(ResetPasswordRequestSchema)
+    def post(self, user_data):
+        """
+        Solicita un email de restablecimiento de contraseña (APP).
+        """
+        email = user_data.get("email")
+
+        # Buscamos al trabajador
+        trabajador = Trabajador.query.filter_by(email=email).first()
+
+        # Respuesta neutra por seguridad (si no existe, no damos error, solo decimos OK)
+        if not trabajador:
+            return {"message": "Si el correo existe, se ha enviado el enlace."}
+
+        try:
+            # Genera token
+            token = generar_token_reset(trabajador.id_trabajador)
+
+            # Crea link que apunta a la web de la app
+            # Usamos _external=True para que ponga https://dominio.com/...
+            link = url_for("auth_web.reset_password_confirm", token=token, _external=True)
+
+            # Envia email
+            enviado = enviar_correo_password(trabajador.email, trabajador.nombre, link)
+
+            if enviado:
+                return {"message": "Correo enviado correctamente."}
+            else:
+                abort(500, message="Error al enviar el correo electrónico.")
+
+        except Exception as e:
+            print(f"Error en API Reset: {e}")
+            abort(500, message="Error interno del servidor")
