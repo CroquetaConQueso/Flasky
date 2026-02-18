@@ -7,7 +7,7 @@ from resources.auth import blp as AuthBlueprint
 from resources.empresa import blp as EmpresaBlueprint
 from resources.fichaje import blp as FichajeBlueprint
 from resources.incidencia import blp as IncidenciaBlueprint
-
+from resources.avisos import blp as AvisosBlueprint
 # 2. Imports de la Web (Para el Administrador - HTML)
 from routes.auth_routes import auth_bp
 from routes.super_routes import super_bp
@@ -30,7 +30,7 @@ def create_app():
     api.register_blueprint(EmpresaBlueprint, url_prefix="/api")
     api.register_blueprint(FichajeBlueprint, url_prefix="/api")
     api.register_blueprint(IncidenciaBlueprint, url_prefix="/api")
-
+    api.register_blueprint(AvisosBlueprint, url_prefix="/api")
     # --- Registro de Web (Admin) ---
     # Se registran en 'app' (Flask estándar)
     app.register_blueprint(auth_bp)

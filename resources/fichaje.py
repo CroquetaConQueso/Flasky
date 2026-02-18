@@ -1,6 +1,7 @@
 import math
 import re
 from datetime import datetime, timedelta, date
+from zoneinfo import ZoneInfo
 
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
@@ -21,6 +22,20 @@ blp = Blueprint("fichajes", __name__, description="Fichajes y control de presenc
 
 # Regex defensiva para validar UIDs en HEX puro.
 _UID_RE = re.compile(r"^[0-9A-F]+$")
+
+# Zona horaria única del sistema (debe coincidir con avisos.py para evitar desajustes).
+TZ = ZoneInfo("Europe/Madrid")
+
+
+def _local_now_naive() -> datetime:
+    """
+    Devuelve "ahora" en hora Madrid como datetime naive (sin tzinfo).
+
+    Motivo:
+    - avisos.py ya trabaja en Madrid naive para comparar horarios (Franja/Dia) y fichajes del día.
+    - si aquí guardamos fichajes con otro "now" (UTC o TZ del servidor), pueden aparecer falsos avisos.
+    """
+    return datetime.now(TZ).replace(tzinfo=None)
 
 
 # ---------------------------------------------------------------------
@@ -84,7 +99,6 @@ def _validar_distancia_empresa(empresa: Empresa, lat: float, lon: float):
     if not empresa:
         return
 
-    # Si la empresa tiene coordenadas, exigimos coords del cliente.
     if empresa.latitud is not None and empresa.longitud is not None:
         if lat is None or lon is None:
             abort(400, message="Faltan coordenadas GPS para validar el fichaje.")
@@ -131,14 +145,12 @@ def _uid_invertido(uid_hex: str) -> str:
     if len(uid_hex) < 2:
         return uid_hex
 
-    # Asegura longitud par (por seguridad, aunque _normalizar_uid ya lo hace)
     if len(uid_hex) % 2 == 1:
         uid_hex = "0" + uid_hex
 
     pares = [uid_hex[i:i + 2] for i in range(0, len(uid_hex), 2)]
     pares.reverse()
     return "".join(pares)
-
 
 
 def _uids_equivalentes(uid_recibido_raw: str, uid_guardado_raw: str) -> bool:
@@ -154,21 +166,17 @@ def _uids_equivalentes(uid_recibido_raw: str, uid_guardado_raw: str) -> bool:
     if not _uid_es_valido(recibido) or not _uid_es_valido(guardado):
         return False
 
-    # igualdad directa
     if recibido == guardado:
         return True
 
-    # tolera ceros a la izquierda
     r0 = recibido.lstrip("0")
     g0 = guardado.lstrip("0")
     if r0 and g0 and r0 == g0:
         return True
 
-    # inversión del recibido
     if _uid_invertido(recibido) == guardado:
         return True
 
-    # por si el admin guardó invertido y el lector manda normal
     if recibido == _uid_invertido(guardado):
         return True
 
@@ -198,12 +206,6 @@ def _pair_punches_day(fichajes_day):
     """
     Empareja fichajes ENTRADA/SALIDA en un día para calcular segundos trabajados.
     Devuelve (worked_seconds, incomplete_flag).
-
-    Regla:
-    - Ignora tipos inválidos marcando el día como incompleto.
-    - Si hay dos ENTRADA seguidas o dos SALIDA seguidas -> incompleto.
-    - Si hay una SALIDA sin ENTRADA previa -> incompleto.
-    - Si queda una ENTRADA abierta al final -> incompleto.
     """
     fichajes_day = sorted(fichajes_day, key=lambda f: f.fecha_hora)
     worked = 0
@@ -244,13 +246,15 @@ def _pair_punches_day(fichajes_day):
 # CREACIÓN DE FICHAJE (ENTRADA/SALIDA)
 # ---------------------------------------------------------------------
 
-def _crear_fichaje(trabajador: Trabajador, lat: float, lon: float):
+def _crear_fichaje(trabajador: Trabajador, lat: float, lon: float, now: datetime | None = None):
     """
     Crea un fichaje alternando ENTRADA/SALIDA según el último fichaje.
+
     Controles:
     - Anti-doble click: si el último fichaje fue hace < 60s -> 429.
     - Si el último fue ENTRADA y han pasado > 16h -> genera incidencia OLVIDO (cierre automático)
-      y abre una nueva ENTRADA (para no encadenar SALIDAS absurdas).
+      y abre una nueva ENTRADA.
+    - now es inyectable para mantener consistencia temporal dentro del request.
     """
     ultimo = (
         Fichaje.query.filter_by(id_trabajador=trabajador.id_trabajador)
@@ -259,7 +263,7 @@ def _crear_fichaje(trabajador: Trabajador, lat: float, lon: float):
     )
 
     tipo_nuevo = "ENTRADA"
-    now = datetime.now()
+    now = now or _local_now_naive()
 
     if ultimo:
         segundos = (now - ultimo.fecha_hora).total_seconds()
@@ -306,44 +310,40 @@ def _procesar_fichaje_comun(user_id, lat, lon, nfc_data_raw=None):
        - Si la empresa tiene NFC de oficina -> OBLIGATORIO y debe coincidir.
        - Si la empresa NO tiene NFC de oficina -> si llega NFC, se valida contra el NFC del trabajador (si existe).
     3) Validar distancia GPS respecto a la empresa.
-    4) (Extra) Anti-doble lectura NFC: evita 2 requests seguidas al acercar la tarjeta.
-    5) Crear el fichaje (ENTRADA/SALIDA) aplicando las reglas de _crear_fichaje().
+    4) Anti-doble lectura NFC: evita 2 requests seguidas al acercar la tarjeta.
+    5) Crear el fichaje (ENTRADA/SALIDA).
     """
     trabajador = Trabajador.query.get_or_404(user_id)
     empresa = trabajador.empresa
 
+    now = _local_now_naive()
+
     # --- 1) Validación NFC (modo "NFC de oficina" vs "NFC personal") ---
 
-    # NFC de oficina guardado por el admin (si existe, será obligatorio para fichar desde app móvil)
     nfc_oficina_requerido = _normalizar_uid(getattr(empresa, "codigo_nfc_oficina", None))
 
     if nfc_oficina_requerido:
-        # En modo "oficina": el cliente DEBE enviar un NFC y debe coincidir con el oficial.
         nfc_recibido = _normalizar_uid(nfc_data_raw)
         if not nfc_recibido:
             abort(400, message="Fichaje restringido: Debes escanear el punto NFC de la entrada.")
 
-        # Algunos lectores devuelven el UID por bytes invertidos, por eso aceptamos ambas variantes.
         uid_inv = _uid_invertido(nfc_recibido)
 
         if nfc_recibido != nfc_oficina_requerido and uid_inv != nfc_oficina_requerido:
             abort(403, message="NFC Incorrecto. Escanea la etiqueta oficial de la entrada.")
     else:
-        # En modo "personal": el NFC es opcional. Si llega, se valida contra el del trabajador.
         nfc_recibido = _normalizar_uid(nfc_data_raw)
         if nfc_recibido:
             uid_guardado = _normalizar_uid(getattr(trabajador, "codigo_nfc", None))
             uid_inv = _uid_invertido(nfc_recibido)
 
-            # Si el trabajador no tiene NFC asignado, o no coincide (normal o invertido) => prohibido
             if not uid_guardado or (nfc_recibido != uid_guardado and uid_inv != uid_guardado):
                 abort(403, message="Código NFC no válido o no asignado a este usuario.")
 
     # --- 2) Validación GPS (radio empresa) ---
     _validar_distancia_empresa(empresa, lat, lon)
 
-    # --- 3) Extra: Anti-doble lectura NFC (evita 429 por acercar tarjeta y disparar 2 requests) ---
-    # Solo aplica si la llamada viene con NFC (manual no se toca).
+    # --- 3) Anti-doble lectura NFC ---
     if nfc_data_raw:
         ultimo = (
             Fichaje.query.filter_by(id_trabajador=trabajador.id_trabajador)
@@ -351,13 +351,12 @@ def _procesar_fichaje_comun(user_id, lat, lon, nfc_data_raw=None):
             .first()
         )
         if ultimo:
-            segundos = (datetime.now() - ultimo.fecha_hora).total_seconds()
-            # Ventana pequeña: suficiente para rebotes NFC, sin molestar al usuario
+            segundos = (now - ultimo.fecha_hora).total_seconds()
             if segundos < 8:
                 abort(429, message="Lectura repetida NFC. Espera un momento y vuelve a acercar la tarjeta.")
 
-    # --- 4) Crear fichaje (ENTRADA/SALIDA) ---
-    return _crear_fichaje(trabajador, lat, lon)
+    # --- 4) Crear fichaje ---
+    return _crear_fichaje(trabajador, lat, lon, now=now)
 
 
 # ---------------------------------------------------------------------
@@ -380,11 +379,10 @@ class ResumenMensual(MethodView):
         user_id = get_jwt_identity()
         trabajador = Trabajador.query.get_or_404(user_id)
 
-        now = datetime.now()
+        now = _local_now_naive()
         mes = args.get("mes") or now.month
         anio = args.get("anio") or now.year
 
-        # Sin horario asignado => no se puede computar teóricas.
         if not trabajador.idHorario:
             return {
                 "mes": f"{mes:02d}/{anio}",
@@ -399,11 +397,9 @@ class ResumenMensual(MethodView):
                 "calculo_confiable": True
             }
 
-        # Rango del mes [start_dt, end_dt)
         start_dt = datetime(anio, mes, 1)
         end_dt = datetime(anio + 1, 1, 1) if mes == 12 else datetime(anio, mes + 1, 1)
 
-        # Incidencias aprobadas de ausencia que "anulan" las horas teóricas de esos días.
         TIPOS_AUSENCIA = {"VACACIONES", "BAJA", "ASUNTOS_PROPIOS"}
         incidencias_aprobadas = Incidencia.query.filter(
             Incidencia.id_trabajador == user_id,
@@ -413,7 +409,6 @@ class ResumenMensual(MethodView):
             Incidencia.fecha_fin >= start_dt.date()
         ).all()
 
-        # Mapeo nombres de día a weekday (0=lunes..6=domingo)
         dias_semana = {
             0: "lunes", 1: "martes", 2: "miercoles", 3: "jueves",
             4: "viernes", 5: "sabado", 6: "domingo"
@@ -421,28 +416,24 @@ class ResumenMensual(MethodView):
         nombre_to_weekday = {v: k for k, v in dias_semana.items()}
         dia_id_to_weekday = {}
 
-        # Construye diccionario: idDia (DB) -> weekday (int)
         for d in Dia.query.all():
             key = (d.nombre or "").strip().lower()
             wd = nombre_to_weekday.get(key)
             if wd is not None:
                 dia_id_to_weekday[d.id] = wd
 
-        # Segundos teóricos por weekday, sumando las franjas del horario del trabajador
         segundos_teoricos_dia = {i: 0 for i in range(7)}
         for f in Franja.query.filter_by(id_horario=trabajador.idHorario).all():
             wd = dia_id_to_weekday.get(f.id_dia)
             if wd is not None:
                 segundos_teoricos_dia[wd] += _get_duration_seg(f.hora_entrada, f.hora_salida)
 
-        # Fichajes reales del mes
         fichajes = Fichaje.query.filter(
             Fichaje.id_trabajador == user_id,
             Fichaje.fecha_hora >= start_dt,
             Fichaje.fecha_hora < end_dt
         ).order_by(Fichaje.fecha_hora.asc()).all()
 
-        # Agrupa fichajes por fecha
         fichajes_por_dia = {}
         for f in fichajes:
             fichajes_por_dia.setdefault(f.fecha_hora.date(), []).append(f)
@@ -451,15 +442,12 @@ class ResumenMensual(MethodView):
         total_trabajado_seg = 0
         dias_incompletos = []
 
-        # Recorre día a día para computar teóricas y trabajadas
         curr = start_dt.date()
         while curr < end_dt.date():
-            # Si hay ausencia aprobada, no suma horas teóricas ese día
             es_ausencia = any(inc.fecha_inicio <= curr <= inc.fecha_fin for inc in incidencias_aprobadas)
             if not es_ausencia:
                 total_teorico_seg += segundos_teoricos_dia.get(curr.weekday(), 0)
 
-            # Si hay fichajes, empareja ENTRADA/SALIDA
             punches = fichajes_por_dia.get(curr, [])
             if punches:
                 worked, incomplete = _pair_punches_day(punches)
@@ -476,8 +464,6 @@ class ResumenMensual(MethodView):
             "teoricas": round(total_teorico_seg / 3600, 2),
             "trabajadas": round(total_trabajado_seg / 3600, 2),
             "saldo": round(balance_seg / 3600, 2),
-
-            # Extra: útil para app móvil (debug/fiabilidad/UX)
             "teoricas_seg": total_teorico_seg,
             "trabajadas_seg": total_trabajado_seg,
             "saldo_seg": balance_seg,
@@ -492,7 +478,6 @@ class Fichar(MethodView):
     """
     Fichaje normal.
     Si la empresa exige NFC de oficina, este endpoint también lo validará si mandas nfc_data.
-    (En tu app móvil, normalmente el fichaje manual manda nfc_data = null.)
     """
     @jwt_required()
     @blp.arguments(FichajeInputSchema)
@@ -561,7 +546,6 @@ class FichajesEmpleado(MethodView):
 
         target = Trabajador.query.get_or_404(empleado_id)
 
-        # Si no es de la misma empresa y no es SUPER, se camufla como 404 (no filtra existencia)
         if target.idEmpresa != yo.idEmpresa and "SUPER" not in rol:
             abort(404, message="Empleado no encontrado.")
 

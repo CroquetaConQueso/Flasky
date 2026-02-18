@@ -1,3 +1,8 @@
+"""
+Blueprint: rrhh_web
+Objetivo: panel RRHH (admin) para empleados, horarios/franjas, fichajes e incidencias.
+"""
+
 from flask import Blueprint, render_template, redirect, url_for, flash, session, request
 from models import Trabajador, Rol, Horario, Franja, Fichaje, Empresa, Incidencia, Dia
 from forms import TrabajadorForm, HorarioForm, FichajeManualForm, IncidenciaCrearForm, IncidenciaAdminForm
@@ -10,17 +15,13 @@ import calendar
 
 rrhh_bp = Blueprint('rrhh_web', __name__)
 
-# --- HELPER: CÁLCULO DE HORAS POR RANGO ---
+
 def calcular_resumen_rango(empleado_id, start_date, end_date):
-    """
-    Recorre el rango indicado y compara lo que “tocaba” trabajar según horario,
-    con lo que realmente se registró por fichajes.
-    """
+    """Calcula horas teóricas vs trabajadas en un rango (por horario + fichajes)."""
     trabajador = Trabajador.query.get(empleado_id)
     if not trabajador or not trabajador.idHorario:
         return None
 
-    # Acepta date o datetime y lo ajusta para cubrir el día completo.
     if isinstance(start_date, date):
         start_date = datetime.combine(start_date, time.min)
     if isinstance(end_date, date):
@@ -29,7 +30,7 @@ def calcular_resumen_rango(empleado_id, start_date, end_date):
     dias_semana = {0: 'lunes', 1: 'martes', 2: 'miercoles', 3: 'jueves', 4: 'viernes', 5: 'sabado', 6: 'domingo'}
     horas_por_weekday = {}
 
-    # Construye una tabla “día de semana -> segundos teóricos” a partir de las franjas del horario.
+    # Tabla: weekday -> segundos teóricos según franjas del horario
     for wd, nombre_dia in dias_semana.items():
         dia_bd = Dia.query.filter_by(nombre=nombre_dia).first()
         if dia_bd:
@@ -43,16 +44,14 @@ def calcular_resumen_rango(empleado_id, start_date, end_date):
         else:
             horas_por_weekday[wd] = 0
 
-    # Suma lo teórico día a día dentro del rango.
     total_teorico_sec = 0
     delta_days = (end_date - start_date).days + 1
 
     for i in range(delta_days):
         current_day = start_date + timedelta(days=i)
-        wd = current_day.weekday()
-        total_teorico_sec += horas_por_weekday.get(wd, 0)
+        total_teorico_sec += horas_por_weekday.get(current_day.weekday(), 0)
 
-    # Trae los fichajes del rango y los empareja ENTRADA -> SALIDA para obtener tiempo trabajado.
+    # Empareja ENTRADA->SALIDA para estimar trabajado (lo no emparejado queda fuera)
     fichajes = Fichaje.query.filter(
         Fichaje.id_trabajador == empleado_id,
         Fichaje.fecha_hora >= start_date,
@@ -68,8 +67,7 @@ def calcular_resumen_rango(empleado_id, start_date, end_date):
         elif f.tipo == 'SALIDA':
             if pendientes:
                 ent = pendientes.pop()
-                delta = (f.fecha_hora - ent.fecha_hora).total_seconds()
-                total_trabajado_sec += delta
+                total_trabajado_sec += (f.fecha_hora - ent.fecha_hora).total_seconds()
 
     horas_teoricas = total_teorico_sec / 3600
     horas_trabajadas = total_trabajado_sec / 3600
@@ -82,31 +80,33 @@ def calcular_resumen_rango(empleado_id, start_date, end_date):
         'saldo': round(saldo, 2)
     }
 
-# --- GESTIÓN DE EMPLEADOS ---
+
+# =========================
+# EMPLEADOS
+# =========================
 
 @rrhh_bp.get("/empleados")
 @admin_required
 def empleados_list():
-    # Lista el personal de la empresa activa, ordenado para navegación rápida.
     empresa_id = session.get("empresa_id")
     empleados = Trabajador.query.filter_by(idEmpresa=empresa_id).order_by(Trabajador.apellidos).all()
     return render_template("empleados_list.html", empleados=empleados)
 
+
 @rrhh_bp.route("/empleados/nuevo", methods=["GET", "POST"])
 @admin_required
 def empleado_new():
-    # Prepara formulario y combos (roles/horarios) según el contexto de empresa.
     empresa_id = session.get("empresa_id")
     form = TrabajadorForm()
-    form.rol_id.choices = [(r.id_rol, r.nombre_rol) for r in Rol.query.all()]
 
+    form.rol_id.choices = [(r.id_rol, r.nombre_rol) for r in Rol.query.all()]
     if hasattr(Horario, 'empresa_id'):
         form.horario_id.choices = [(h.id_horario, h.nombre_horario) for h in Horario.query.filter_by(empresa_id=empresa_id).all()]
     else:
         form.horario_id.choices = [(h.id_horario, h.nombre_horario) for h in Horario.query.all()]
 
     if form.validate_on_submit():
-        # Normaliza NIF y (si existe) el código NFC para evitar duplicados por formato.
+        # Normalización básica (evita duplicados por formato)
         nif = (form.nif.data or "").strip().upper()
 
         raw_nfc = (getattr(form, "codigo_nfc", None).data if hasattr(form, "codigo_nfc") else None)
@@ -114,13 +114,11 @@ def empleado_new():
         if codigo_nfc:
             codigo_nfc = codigo_nfc.replace(":", "").replace("-", "").replace(" ", "")
 
-        # Si el identificador ya existe, se frena aquí para no romper integridad.
         if Trabajador.query.filter_by(nif=nif).first():
             flash("El NIF introducido ya está registrado.", "danger")
         elif codigo_nfc and Trabajador.query.filter_by(codigo_nfc=codigo_nfc).first():
             flash("Ese código NFC ya está asignado a otro empleado.", "danger")
         else:
-            # Construye el trabajador con el contexto de empresa, rol y horario elegidos.
             nuevo = Trabajador(
                 nif=nif,
                 nombre=form.nombre.data,
@@ -133,7 +131,6 @@ def empleado_new():
                 codigo_nfc=codigo_nfc if codigo_nfc else None
             )
 
-            # Si se introdujo contraseña, se guarda ya hasheada.
             if form.passw.data:
                 nuevo.set_password(form.passw.data)
 
@@ -144,10 +141,10 @@ def empleado_new():
 
     return render_template("empleados_form.html", form=form, is_new=True)
 
+
 @rrhh_bp.route("/empleados/<int:emp_id>/editar", methods=["GET", "POST"])
 @admin_required
 def empleado_edit(emp_id):
-    # Abre la ficha de un empleado propio y permite actualizar sus datos.
     empresa_id = session.get("empresa_id")
     empleado = Trabajador.query.get_or_404(emp_id)
 
@@ -156,32 +153,48 @@ def empleado_edit(emp_id):
         return redirect(url_for("rrhh_web.empleados_list"))
 
     form = TrabajadorForm(obj=empleado)
-    form.rol_id.choices = [(r.id_rol, r.nombre_rol) for r in Rol.query.all()]
 
+    # Los nombres de FK no coinciden con el form (idRol vs rol_id, idHorario vs horario_id)
+    if request.method == 'GET':
+        form.rol_id.data = empleado.idRol
+        form.horario_id.data = empleado.idHorario
+
+    form.rol_id.choices = [(r.id_rol, r.nombre_rol) for r in Rol.query.all()]
     if hasattr(Horario, 'empresa_id'):
         form.horario_id.choices = [(h.id_horario, h.nombre_horario) for h in Horario.query.filter_by(empresa_id=empresa_id).all()]
     else:
         form.horario_id.choices = [(h.id_horario, h.nombre_horario) for h in Horario.query.all()]
 
-    # En GET se fuerza el horario actual para que el selector no se “desenganche”.
-    if request.method == 'GET':
-        form.horario_id.data = empleado.idHorario
-
     if form.validate_on_submit():
-        # Aplica el formulario al modelo y actualiza contraseña solo si se ha escrito.
-        form.populate_obj(empleado)
-        if form.passw.data:
+        empleado.nif = form.nif.data
+        empleado.nombre = form.nombre.data
+        empleado.apellidos = form.apellidos.data
+        empleado.email = form.email.data
+        empleado.telef = form.telef.data
+
+        empleado.idRol = form.rol_id.data
+        empleado.idHorario = form.horario_id.data
+
+        # Contraseña: solo si viene nueva
+        if form.passw.data and form.passw.data.strip():
             empleado.set_password(form.passw.data)
+
+        # NFC: normalización ligera si existe el campo
+        if hasattr(form, "codigo_nfc"):
+            raw = form.codigo_nfc.data
+            clean = raw.strip().upper().replace(":", "").replace("-", "").replace(" ", "") if raw else None
+            empleado.codigo_nfc = clean
+
         db.session.commit()
-        flash("Datos actualizados.", "success")
+        flash("Datos actualizados correctamente.", "success")
         return redirect(url_for("rrhh_web.empleados_list"))
 
     return render_template("empleados_form.html", form=form, titulo="Editar Empleado", is_new=False)
 
+
 @rrhh_bp.post("/empleados/<int:emp_id>/eliminar")
 @admin_required
 def empleado_delete(emp_id):
-    # Borra el empleado si pertenece a la empresa activa.
     empleado = Trabajador.query.get_or_404(emp_id)
     if empleado.idEmpresa != session.get("empresa_id"):
         flash("Error de seguridad.", "danger")
@@ -192,12 +205,14 @@ def empleado_delete(emp_id):
     flash("Empleado eliminado.", "success")
     return redirect(url_for("rrhh_web.empleados_list"))
 
-# --- GESTIÓN DE HORARIOS ---
+
+# =========================
+# HORARIOS
+# =========================
 
 @rrhh_bp.get("/horarios")
 @admin_required
 def horarios_list():
-    # Muestra horarios disponibles, filtrados por empresa si el modelo lo soporta.
     empresa_id = session.get("empresa_id")
     try:
         if hasattr(Horario, 'empresa_id'):
@@ -209,10 +224,10 @@ def horarios_list():
 
     return render_template("horarios_list.html", horarios=horarios)
 
+
 @rrhh_bp.route("/horarios/nuevo", methods=["GET", "POST"])
 @admin_required
 def horario_new():
-    # Crea un nuevo horario y lo asocia a la empresa si existe ese campo.
     empresa_id = session.get("empresa_id")
     form = HorarioForm()
     if form.validate_on_submit():
@@ -240,10 +255,10 @@ def horario_new():
 
     return render_template("horario_form.html", form=form, titulo="Nuevo horario", is_new=True)
 
+
 @rrhh_bp.route("/horarios/<int:horario_id>/editar", methods=["GET", "POST"])
 @admin_required
 def horario_edit(horario_id):
-    # Abre un horario y permite renombrar/editar descripción.
     horario = Horario.query.get_or_404(horario_id)
     if hasattr(horario, 'empresa_id') and horario.empresa_id != session.get("empresa_id"):
         flash("No tienes permiso.", "danger")
@@ -259,14 +274,15 @@ def horario_edit(horario_id):
 
     return render_template("horario_form.html", form=form, titulo="Editar Horario")
 
+
 @rrhh_bp.post("/horarios/<int:horario_id>/eliminar")
 @admin_required
 def horario_delete(horario_id):
-    # Elimina el horario si no hay empleados vinculados; limpia franjas si procede.
     horario = Horario.query.get_or_404(horario_id)
     if hasattr(horario, 'empresa_id') and horario.empresa_id != session.get("empresa_id"):
         return redirect(url_for("rrhh_web.horarios_list"))
 
+    # Seguridad funcional: si hay empleados vinculados, no se borra
     if horario.trabajadores:
         flash("No se puede eliminar: Hay empleados usando este horario.", "danger")
     else:
@@ -281,12 +297,14 @@ def horario_delete(horario_id):
 
     return redirect(url_for("rrhh_web.horarios_list"))
 
-# --- GESTIÓN DE FRANJAS ---
+
+# =========================
+# FRANJAS
+# =========================
 
 @rrhh_bp.route("/horarios/<int:horario_id>/franjas", methods=["GET", "POST"])
 @admin_required
 def horario_franjas(horario_id):
-    # Gestiona la parrilla de franjas por día para un horario concreto.
     horario = Horario.query.get_or_404(horario_id)
     if hasattr(horario, 'empresa_id') and horario.empresa_id != session.get("empresa_id"):
         return redirect(url_for("rrhh_web.horarios_list"))
@@ -294,18 +312,17 @@ def horario_franjas(horario_id):
     dias_disponibles = Dia.query.order_by(Dia.id).all()
 
     if request.method == "POST":
-        # Si este POST viene del panel de checkboxes de días, se deriva al endpoint dedicado.
+        # Si el POST viene del bloque de días (checkboxes), se queda en la misma vista
         if any(dia in request.form for dia in ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"]):
             return redirect(url_for("rrhh_web.horario_franjas", horario_id=horario_id))
 
-        # Lee el formulario de creación de franja.
         h_inicio = request.form.get("hora_inicio")
         h_fin = request.form.get("hora_fin")
         dia_seleccionado = request.form.get("dia_id")
 
         if h_inicio and h_fin and dia_seleccionado:
             try:
-                # Solo una franja por día/horario: si existe, se fuerza a borrarla antes.
+                # Regla de negocio aquí: una franja por día/horario
                 existe = Franja.query.filter_by(id_horario=horario_id, id_dia=dia_seleccionado).first()
                 if existe:
                     flash("Ya existe una franja para ese día. Bórrala antes de crear una nueva.", "warning")
@@ -332,10 +349,10 @@ def horario_franjas(horario_id):
     franjas = Franja.query.filter_by(id_horario=horario_id).join(Dia).order_by(Dia.id).all()
     return render_template("horario_franjas.html", horario=horario, franjas=franjas, dias=dias_disponibles)
 
+
 @rrhh_bp.post("/horarios/<int:horario_id>/dias")
 @admin_required
 def horario_update_dias(horario_id):
-    # Marca qué días son laborables en el horario usando los checkboxes del formulario.
     horario = Horario.query.get_or_404(horario_id)
     if hasattr(horario, 'empresa_id') and horario.empresa_id != session.get("empresa_id"):
         return redirect(url_for("rrhh_web.horarios_list"))
@@ -350,10 +367,10 @@ def horario_update_dias(horario_id):
     flash("Días laborables actualizados.", "success")
     return redirect(url_for("rrhh_web.horario_franjas", horario_id=horario_id))
 
+
 @rrhh_bp.post("/horarios/<int:horario_id>/franjas/delete/<int:dia_id>")
 @admin_required
 def franja_delete(horario_id, dia_id):
-    # Borra la franja del día indicado para este horario.
     franja = Franja.query.get_or_404((dia_id, horario_id))
 
     if hasattr(franja.horario, 'empresa_id') and franja.horario.empresa_id != session.get("empresa_id"):
@@ -364,12 +381,14 @@ def franja_delete(horario_id, dia_id):
     flash("Franja eliminada.", "success")
     return redirect(url_for("rrhh_web.horario_franjas", horario_id=horario_id))
 
-# --- FICHAJES E INCIDENCIAS (MODIFICADO RANGOS) ---
+
+# =========================
+# FICHAJES + INCIDENCIAS
+# =========================
 
 @rrhh_bp.get("/fichajes")
 @admin_required
 def fichajes_list():
-    # Compone una vista de jornadas emparejando entradas/salidas, con filtros por empleado y fechas.
     empresa_id = session.get("empresa_id")
 
     filtro_empleado = request.args.get('empleado_id', type=int)
@@ -392,7 +411,7 @@ def fichajes_list():
     jornadas = []
     pendientes = {}
 
-    # Reconstruye “jornadas” por empleado, detectando huecos y registros sueltos.
+    # Reconstrucción de jornadas por empleado (detecta huérfanos y entradas sin salida)
     for f in fichajes_raw:
         emp_id = f.id_trabajador
 
@@ -424,7 +443,7 @@ def fichajes_list():
                     'salida': f,
                     'duracion': duracion_txt,
                     'status': status,
-                    'is_long': (status=='warning'),
+                    'is_long': (status == 'warning'),
                     'fecha_ref': ent.fecha_hora
                 })
             else:
@@ -438,7 +457,7 @@ def fichajes_list():
                     'fecha_ref': f.fecha_hora
                 })
 
-    # Cierra el recorrido marcando entradas sin salida como “en curso” o “muy antiguas”.
+    # Entradas pendientes al final: activas o demasiado largas
     for emp_id, ent in pendientes.items():
         delta = datetime.now() - ent.fecha_hora
         horas = delta.total_seconds() / 3600
@@ -451,14 +470,14 @@ def fichajes_list():
             'salida': None,
             'duracion': duracion_txt,
             'status': status,
-            'is_active': (status=='active'),
+            'is_active': (status == 'active'),
             'fecha_ref': ent.fecha_hora
         })
 
     jornadas.sort(key=lambda x: x['fecha_ref'], reverse=True)
     empleados = Trabajador.query.filter_by(idEmpresa=empresa_id).order_by(Trabajador.nombre).all()
 
-    # Si hay empleado seleccionado, acompaña la tabla con un resumen del rango.
+    # Resumen solo cuando hay empleado seleccionado (con rango explícito o mes actual)
     resumen = None
     if filtro_empleado:
         if not filtro_desde or not filtro_hasta:
@@ -476,13 +495,15 @@ def fichajes_list():
 
         resumen = calcular_resumen_rango(filtro_empleado, start_date, end_date)
 
-    return render_template("fichajes_list.html",
-                           jornadas=jornadas,
-                           empleados=empleados,
-                           filtro_empleado=filtro_empleado,
-                           filtro_desde=filtro_desde,
-                           filtro_hasta=filtro_hasta,
-                           resumen=resumen)
+    return render_template(
+        "fichajes_list.html",
+        jornadas=jornadas,
+        empleados=empleados,
+        filtro_empleado=filtro_empleado,
+        filtro_desde=filtro_desde,
+        filtro_hasta=filtro_hasta,
+        resumen=resumen
+    )
 
 
 @rrhh_bp.route("/fichajes/nuevo", methods=["GET", "POST"])
@@ -500,7 +521,6 @@ def fichaje_nuevo():
         form.longitud.data = empresa.longitud
 
     if form.validate_on_submit():
-        # Usamos los datos del form (si el admin los ha cambiado) o fallbacks
         lat = form.latitud.data if form.latitud.data is not None else (empresa.latitud or 0.0)
         lon = form.longitud.data if form.longitud.data is not None else (empresa.longitud or 0.0)
 
@@ -517,7 +537,7 @@ def fichaje_nuevo():
         return redirect(url_for("rrhh_web.fichajes_list"))
 
     if form.errors:
-         for field, errors in form.errors.items():
+        for field, errors in form.errors.items():
             for error in errors:
                 flash(f"Error en {field}: {error}", "warning")
 
@@ -529,14 +549,12 @@ def fichaje_nuevo():
 def fichaje_editar(fichaje_id):
     fichaje = Fichaje.query.get_or_404(fichaje_id)
 
-
     if fichaje.trabajador.idEmpresa != session.get("empresa_id"):
         flash("No tienes permiso para editar este fichaje.", "danger")
         return redirect(url_for("rrhh_web.fichajes_list"))
 
     form = FichajeManualForm(obj=fichaje)
 
-    # Cargar selector de empleados
     empresa_id = session.get("empresa_id")
     empleados = Trabajador.query.filter_by(idEmpresa=empresa_id).order_by(Trabajador.nombre).all()
     form.trabajador_id.choices = [(t.id_trabajador, f"{t.nombre} {t.apellidos}") for t in empleados]
@@ -549,10 +567,10 @@ def fichaje_editar(fichaje_id):
 
     return render_template("fichaje_manual.html", form=form, titulo="Editar Fichaje")
 
+
 @rrhh_bp.get("/incidencias")
 @admin_required
 def incidencias_list():
-    # Filtra incidencias por empleado y rango, y prepara el listado para administración.
     empresa_id = session.get("empresa_id")
 
     filtro_empleado = request.args.get('empleado_id', type=int)
@@ -573,17 +591,19 @@ def incidencias_list():
     incidencias = query.order_by(Incidencia.fecha_solicitud.desc()).all()
     empleados = Trabajador.query.filter_by(idEmpresa=empresa_id).order_by(Trabajador.nombre).all()
 
-    return render_template("incidencias_list.html",
-                           incidencias=incidencias,
-                           empleados=empleados,
-                           filtro_empleado=filtro_empleado,
-                           filtro_inicio=filtro_inicio,
-                           filtro_fin=filtro_fin)
+    return render_template(
+        "incidencias_list.html",
+        incidencias=incidencias,
+        empleados=empleados,
+        filtro_empleado=filtro_empleado,
+        filtro_inicio=filtro_inicio,
+        filtro_fin=filtro_fin
+    )
+
 
 @rrhh_bp.route("/incidencias/nueva", methods=["GET", "POST"])
 @admin_required
 def incidencia_nueva():
-    # Crea una incidencia ya aprobada para registrar casos “administrativos”.
     empresa_id = session.get("empresa_id")
     form = IncidenciaCrearForm()
 
@@ -607,10 +627,10 @@ def incidencia_nueva():
 
     return render_template("incidencia_crear.html", form=form)
 
+
 @rrhh_bp.route("/incidencias/<int:incidencia_id>/resolver", methods=["GET", "POST"])
 @admin_required
 def incidencia_resolver(incidencia_id):
-    # Abre una incidencia, valida pertenencia a empresa y permite aprobar/rechazar con comentario.
     incidencia = Incidencia.query.get_or_404(incidencia_id)
     empresa_id = session.get("empresa_id")
 
@@ -625,7 +645,7 @@ def incidencia_resolver(incidencia_id):
         incidencia.comentario_admin = form.comentario_admin.data
         db.session.commit()
 
-        # Tras resolver, se avisa al trabajador por correo con el resultado y el rango afectado.
+        # Notificación por email al cerrar la incidencia
         enviar_correo_resolucion(
             destinatario=incidencia.trabajador.email,
             nombre=incidencia.trabajador.nombre,
@@ -641,10 +661,10 @@ def incidencia_resolver(incidencia_id):
 
     return render_template("incidencias_resolver.html", form=form, incidencia=incidencia)
 
+
 @rrhh_bp.post("/incidencias/<int:incidencia_id>/eliminar")
 @admin_required
 def incidencia_delete(incidencia_id):
-    # Borra una incidencia propia de la empresa, con rollback si algo falla.
     incidencia = Incidencia.query.get_or_404(incidencia_id)
     empresa_id = session.get("empresa_id")
 
@@ -662,10 +682,10 @@ def incidencia_delete(incidencia_id):
 
     return redirect(url_for("rrhh_web.incidencias_list"))
 
+
 @rrhh_bp.post("/fichajes/<int:fichaje_id>/eliminar")
 @admin_required
 def fichaje_delete(fichaje_id):
-    # Permite limpiar registros puntuales del histórico sin tocar a empleados externos.
     fichaje = Fichaje.query.get_or_404(fichaje_id)
     if fichaje.trabajador.idEmpresa != session.get("empresa_id"):
         flash("No tienes permiso para eliminar este fichaje.", "danger")
@@ -681,18 +701,20 @@ def fichaje_delete(fichaje_id):
 
     return redirect(url_for("rrhh_web.fichajes_list"))
 
-# --- BOTON MANUAL DE NOTIFICACIONES (FIREBASE + EMAIL) ---
+
+# =========================
+# NOTIFICACIONES AUSENCIAS (manual)
+# =========================
+
 @rrhh_bp.post("/notificaciones/ejecutar-ausencias")
 @admin_required
 def ejecutar_notificaciones_ausencia():
-    # Lanza una pasada “manual” para detectar ausencias y avisar por push y/o email.
     print("--- EJECUTANDO NOTIFICACIONES (FIREBASE + EMAIL) ---")
 
     DIAS_SEMANA = {0: "lunes", 1: "martes", 2: "miercoles", 3: "jueves", 4: "viernes", 5: "sabado", 6: "domingo"}
     hoy = date.today()
     nombre_dia = DIAS_SEMANA[hoy.weekday()]
 
-    # Mapea el día de hoy con su registro en BD para consultar franjas.
     dia_db = Dia.query.filter_by(nombre=nombre_dia).first()
     if not dia_db:
         flash(f"Error: No existe el día '{nombre_dia}' en la base de datos.", "danger")
@@ -704,16 +726,13 @@ def ejecutar_notificaciones_ausencia():
     enviados_push = 0
 
     for t in trabajadores:
-        # Si no hay horario asignado, no hay forma de calcular turno.
         if not t.idHorario:
             continue
 
-        # Si hoy no tiene franja, se asume que no trabaja.
         franja_hoy = Franja.query.filter_by(id_horario=t.idHorario, id_dia=dia_db.id).first()
         if not franja_hoy:
             continue
 
-        # Comprueba si existe una ENTRADA en el día actual.
         fichaje = Fichaje.query.filter(
             Fichaje.id_trabajador == t.id_trabajador,
             Fichaje.tipo == 'ENTRADA',
@@ -724,7 +743,7 @@ def ejecutar_notificaciones_ausencia():
             detectados += 1
             print(f"⚠️ Ausencia detectada: {t.nombre} {t.apellidos}")
 
-            # Primero intenta avisar al móvil (si hay token), y luego refuerza por email.
+            # Prioriza push si hay token, y refuerza por email si existe
             if t.fcm_token:
                 titulo = "ALERTA DE AUSENCIA"
                 cuerpo = f"Hola {t.nombre}, tienes turno hoy y no has fichado."
